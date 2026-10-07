@@ -34,4 +34,16 @@ class PullDownStateMachineTest {
         val fifthAction = stateMachine.onSwipe()
         assertEquals(PullDownAction.OPEN_NOTIFICATIONS, fifthAction)
     }
+
+    @Test
+    fun testSmartShadeActionResolution() {
+        // When neither shade is open (CLOSED) -> opens notifications
+        assertEquals(PullDownAction.OPEN_NOTIFICATIONS, resolveSmartAction(DetectedShadeState.CLOSED))
+
+        // When notifications are open -> opens quick settings
+        assertEquals(PullDownAction.OPEN_QUICK_SETTINGS, resolveSmartAction(DetectedShadeState.NOTIFICATIONS))
+
+        // When quick settings are open -> returns to notifications
+        assertEquals(PullDownAction.OPEN_NOTIFICATIONS, resolveSmartAction(DetectedShadeState.QUICK_SETTINGS))
+    }
 }

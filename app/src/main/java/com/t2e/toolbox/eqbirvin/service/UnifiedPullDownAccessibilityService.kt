@@ -25,8 +25,10 @@ import com.t2e.toolbox.eqbirvin.data.PullDownMethod
 import com.t2e.toolbox.eqbirvin.data.SettingsRepository
 import com.t2e.toolbox.eqbirvin.data.ShizukuShell
 import com.t2e.toolbox.eqbirvin.data.UnifiedPullDownRepository
+import com.t2e.toolbox.eqbirvin.gesture.DetectedShadeState
 import com.t2e.toolbox.eqbirvin.gesture.PullDownAction
 import com.t2e.toolbox.eqbirvin.gesture.PullDownStateMachine
+import com.t2e.toolbox.eqbirvin.gesture.resolveSmartAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,6 +55,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private var isFeatureEnabled = false
     private var activeOnLockscreen = true
     private var isDebugTintEnabled = false
+    private var isSmartShadeDetectionEnabled = true
     private var currentMethod = PullDownMethod.ACCESSIBILITY
     private var isPassingThroughTap = false
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -120,6 +123,12 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         serviceScope.launch {
             settingsRepo.pullDownMethod.collect { method ->
                 currentMethod = method
+            }
+        }
+
+        serviceScope.launch {
+            settingsRepo.isSmartShadeDetectionEnabled.collect { enabled ->
+                isSmartShadeDetectionEnabled = enabled
             }
         }
 
@@ -329,7 +338,13 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     }
 
     private fun onSwipe() {
-        val action = stateMachine.onSwipe()
+        val action = if (isSmartShadeDetectionEnabled) {
+            val shadeState = ShadeStateDetector.detect(this)
+            Log.d(TAG, "Smart shade detection detected state: $shadeState")
+            resolveSmartAction(shadeState)
+        } else {
+            stateMachine.onSwipe()
+        }
         executeAction(action)
     }
 

@@ -26,6 +26,7 @@ data class UnifiedPullDownUiState(
     val isEnabled: Boolean = false,
     val isActiveOnLockscreen: Boolean = true,
     val isDebugTintEnabled: Boolean = false,
+    val isSmartShadeDetectionEnabled: Boolean = true,
     val method: PullDownMethod = PullDownMethod.ACCESSIBILITY,
     val shizukuStatus: ShizukuStatus = ShizukuStatus.NOT_RUNNING,
     val shizukuMessage: String? = null,
@@ -56,6 +57,7 @@ private data class SettingsTuple(
     val enabled: Boolean,
     val onLock: Boolean,
     val debugTint: Boolean,
+    val smartShade: Boolean,
     val method: PullDownMethod
 )
 
@@ -81,9 +83,10 @@ class UnifiedPullDownViewModel(
         settingsRepo.isPullDownEnabled,
         settingsRepo.isPullDownOnLockscreen,
         settingsRepo.isPullDownDebugTint,
+        settingsRepo.isSmartShadeDetectionEnabled,
         settingsRepo.pullDownMethod
-    ) { enabled, onLock, debugTint, method ->
-        SettingsTuple(enabled, onLock, debugTint, method)
+    ) { enabled, onLock, debugTint, smartShade, method ->
+        SettingsTuple(enabled, onLock, debugTint, smartShade, method)
     }
 
     val uiState: StateFlow<UnifiedPullDownUiState> = combine(
@@ -98,6 +101,7 @@ class UnifiedPullDownViewModel(
             isEnabled = settings.enabled,
             isActiveOnLockscreen = settings.onLock,
             isDebugTintEnabled = settings.debugTint,
+            isSmartShadeDetectionEnabled = settings.smartShade,
             method = settings.method,
             shizukuStatus = shizukuStatus,
             shizukuMessage = msg,
@@ -131,6 +135,12 @@ class UnifiedPullDownViewModel(
     fun toggleDebugTint(tint: Boolean) {
         viewModelScope.launch {
             settingsRepo.setPullDownDebugTint(tint)
+        }
+    }
+
+    fun toggleSmartShadeDetection(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepo.setSmartShadeDetectionEnabled(enabled)
         }
     }
 

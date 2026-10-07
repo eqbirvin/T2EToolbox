@@ -19,6 +19,7 @@ data class UnifiedPullDownActions(
     val onToggleEnabled: (Boolean) -> Unit,
     val onToggleLockscreen: (Boolean) -> Unit,
     val onToggleDebugTint: (Boolean) -> Unit,
+    val onToggleSmartShadeDetection: (Boolean) -> Unit,
     val onSelectMethod: (PullDownMethod) -> Unit,
     val onEnableWithShizuku: () -> Unit,
     val onDisableWithShizuku: () -> Unit,
@@ -71,9 +72,9 @@ fun UnifiedPullDownScreen(
                     Text("Stock-Style Status Bar Swipe", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Replaces the vendor's split touch behavior (left=notifications, right=Quick Settings) with stock Android behavior:\n" +
-                        "1. Swiping down anywhere opens notifications.\n" +
-                        "2. Swiping down again within 3 seconds opens Quick Settings."
+                        "Replaces the vendor's split touch behavior (left=notifications, right=Quick Settings) with unified behavior:\n" +
+                        "• When Smart Shade Detection is ON: Swiping down cycles Closed → Notifications → Quick Settings → Notifications based on current shade state.\n" +
+                        "• When Smart Shade Detection is OFF: Swiping down anywhere opens notifications, and swiping again within 3 seconds opens Quick Settings."
                     )
                 }
             }
@@ -162,6 +163,29 @@ fun UnifiedPullDownScreen(
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Smart shade detection",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Detects open shade state. Swipes cycle: Closed → Notifications → Quick Settings → Notifications without a timeout.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.isSmartShadeDetectionEnabled,
+                            onCheckedChange = actions.onToggleSmartShadeDetection
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

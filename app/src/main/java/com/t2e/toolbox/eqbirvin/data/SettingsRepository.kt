@@ -88,6 +88,9 @@ class SettingsRepository(context: Context) {
     private val _isPullDownDebugTint = MutableStateFlow(prefs.getBoolean("pulldown_debug_tint", false))
     val isPullDownDebugTint: StateFlow<Boolean> = _isPullDownDebugTint.asStateFlow()
 
+    private val _isSmartShadeDetectionEnabled = MutableStateFlow(prefs.getBoolean("pulldown_smart_shade_detection", true))
+    val isSmartShadeDetectionEnabled: StateFlow<Boolean> = _isSmartShadeDetectionEnabled.asStateFlow()
+
     private val _pullDownMethod = MutableStateFlow(
         prefs.getString("pulldown_method", null)?.let {
             try {
@@ -147,6 +150,11 @@ class SettingsRepository(context: Context) {
     suspend fun setPullDownDebugTint(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("pulldown_debug_tint", enabled).apply()
         _isPullDownDebugTint.value = enabled
+    }
+
+    suspend fun setSmartShadeDetectionEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("pulldown_smart_shade_detection", enabled).apply()
+        _isSmartShadeDetectionEnabled.value = enabled
     }
 
     suspend fun setPullDownMethod(method: PullDownMethod) = withContext(Dispatchers.IO) {

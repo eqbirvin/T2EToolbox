@@ -8,6 +8,20 @@ enum class PullDownAction {
     OPEN_QUICK_SETTINGS
 }
 
+enum class DetectedShadeState {
+    CLOSED,
+    NOTIFICATIONS,
+    QUICK_SETTINGS
+}
+
+fun resolveSmartAction(shadeState: DetectedShadeState): PullDownAction {
+    return when (shadeState) {
+        DetectedShadeState.CLOSED -> PullDownAction.OPEN_NOTIFICATIONS
+        DetectedShadeState.NOTIFICATIONS -> PullDownAction.OPEN_QUICK_SETTINGS
+        DetectedShadeState.QUICK_SETTINGS -> PullDownAction.OPEN_NOTIFICATIONS
+    }
+}
+
 class PullDownStateMachine(
     private val clock: () -> Long = { SystemClock.elapsedRealtime() },
     private val timeoutMs: Long = 3000L

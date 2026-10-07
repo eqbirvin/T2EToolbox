@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleEnabled = { viewModel.togglePullDownEnabled(it) },
                                     onToggleLockscreen = { viewModel.toggleLockscreen(it) },
                                     onToggleDebugTint = { viewModel.toggleDebugTint(it) },
+                                    onToggleSmartShadeDetection = { viewModel.toggleSmartShadeDetection(it) },
                                     onSelectMethod = { viewModel.setMethod(it) },
                                     onEnableWithShizuku = { viewModel.enableWithShizuku() },
                                     onDisableWithShizuku = { viewModel.disableWithShizuku() },

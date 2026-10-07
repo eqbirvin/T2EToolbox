@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0] - 2026-10-07
+### Added
+- Added "Smart Shade Detection" setting to Unified Pull-Down:
+  - Dynamically inspects SystemUI window hierarchy to detect whether the shade is closed, displaying notifications, or expanded to Quick Settings.
+  - When ON, swipes down cycle smoothly without a timeout: Closed → Notifications → Quick Settings → Notifications.
+  - When OFF, retains the 3-second timeout state machine alternating between notifications and Quick Settings.
+- Added pure resolver logic `resolveSmartAction` and comprehensive unit test coverage.
+- Extracted modular `ShadeStateDetector` to keep accessibility service lean and maintainable.
+- Added in-app setting toggle and descriptive UI guidance.
+
 ## [0.2.3] - 2026-10-07
 ### Fixed
 - Fixed overlay getting killed on status bar tap and restored debug area tint by removing fragile window insets visibility listener that was falsely setting the overlay to `INVISIBLE` and destroying its surface.
