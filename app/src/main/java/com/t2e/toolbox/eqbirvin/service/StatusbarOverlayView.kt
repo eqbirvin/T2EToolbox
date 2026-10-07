@@ -7,10 +7,12 @@ import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import kotlin.math.abs
+import kotlin.math.hypot
 
 class StatusbarOverlayView(
     context: Context,
-    private val onSwipeDetected: () -> Unit
+    private val onSwipeDetected: () -> Unit,
+    private val onTapDetected: (Float, Float) -> Unit = { _, _ -> }
 ) : View(context) {
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -55,9 +57,12 @@ class StatusbarOverlayView(
                     val yVel = velocityTracker?.yVelocity ?: 0f
                     val xVel = velocityTracker?.xVelocity ?: 0f
                     val dy = event.rawY - downY
+                    val dx = event.rawX - downX
                     if (yVel > minFlingVelocity && dy > touchSlop && abs(yVel) > abs(xVel)) {
                         gestureFired = true
                         triggerSwipe()
+                    } else if (hypot(dx, dy) < touchSlop) {
+                        onTapDetected(downX, downY)
                     }
                 }
                 recycleVelocityTracker()

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1] - 2026-10-06
+### Fixed
+- Fixed overlay disappearing permanently after turning off the screen by recovering status bar visibility on screen-on/user-present, requesting insets on wake, and using `View.INVISIBLE` to preserve insets dispatch.
+- Fixed taps being swallowed by the overlay; taps on status bar elements are now cleanly passed through to the system via `dispatchGesture`.
+- Removed the 4-second timeout for the second swipe down: swiping down alternates between notifications and Quick Settings naturally, resetting back to notifications on screen-off.
+- Updated Unified Pull-Down UI copy to reflect the unconstrained second-swipe behavior.
+
 ## [0.2.0] - 2026-10-06
 ### Added
 - Added Unified Pull-Down feature: Replaces vendor split status bar gesture with stock Android behavior (swiping anywhere opens notifications; swiping again within 4s opens Quick Settings).

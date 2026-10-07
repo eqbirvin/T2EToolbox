@@ -1,6 +1,7 @@
 package com.t2e.toolbox.eqbirvin.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -8,8 +9,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Path
 import android.graphics.PixelFormat
-import android.os.SystemClock
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -35,7 +38,7 @@ private const val TAG = "UnifiedPullDownService"
 class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val stateMachine = PullDownStateMachine(clock = { SystemClock.elapsedRealtime() })
+    private val stateMachine = PullDownStateMachine()
 
     private lateinit var settingsRepo: SettingsRepository
     private lateinit var pullDownRepo: UnifiedPullDownRepository
@@ -52,14 +55,26 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private var isDebugTintEnabled = false
     private var currentMethod = PullDownMethod.ACCESSIBILITY
     private var isStatusBarVisible = true
+    private var isPassingThroughTap = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val restoreTouchableRunnable = Runnable {
+        restoreTouchable()
+    }
 
     private val keyguardReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
             val action = intent?.action ?: return
-            if (action != Intent.ACTION_SCREEN_OFF && action != Intent.ACTION_USER_PRESENT && action != Intent.ACTION_SCREEN_ON) {
-                return
+            when (action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    stateMachine.reset()
+                }
+                Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
+                    isStatusBarVisible = true
+                    updateOverlayDimensions()
+                    updateVisibility()
+                    overlayView?.requestApplyInsets()
+                }
             }
-            updateVisibility()
         }
     }
 
@@ -169,7 +184,11 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private fun attachOverlay() {
         if (isViewAttached) return
         val wm = windowManager ?: return
-        val view = overlayView ?: StatusbarOverlayView(this) { onSwipe() }.also { overlayView = it }
+        val view = overlayView ?: StatusbarOverlayView(
+            context = this,
+            onSwipeDetected = { onSwipe() },
+            onTapDetected = { x, y -> passThroughTap(x, y) }
+        ).also { overlayView = it }
         val height = getStatusBarHeight()
         currentHeight = height
         val params = WindowManager.LayoutParams(
@@ -207,6 +226,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private fun detachOverlay() {
         if (!isViewAttached) return
         val view = overlayView ?: return
+        mainHandler.removeCallbacks(restoreTouchableRunnable)
+        isPassingThroughTap = false
         try {
             windowManager?.removeView(view)
         } catch (e: IllegalArgumentException) {
@@ -224,7 +245,66 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         val view = overlayView ?: return
         val hideOnLock = !activeOnLockscreen && checkKeyguardLocked()
         val shouldBeVisible = isFeatureEnabled && isStatusBarVisible && !hideOnLock
-        view.visibility = if (shouldBeVisible) View.VISIBLE else View.GONE
+        view.visibility = if (shouldBeVisible) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun passThroughTap(x: Float, y: Float) {
+        if (isPassingThroughTap) return
+        val view = overlayView ?: return
+        val params = currentLayoutParams ?: return
+        val wm = windowManager ?: return
+
+        isPassingThroughTap = true
+        params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        try {
+            wm.updateViewLayout(view, params)
+        } catch (e: IllegalArgumentException) {
+            Log.e(TAG, "IllegalArgumentException setting FLAG_NOT_TOUCHABLE", e)
+            isPassingThroughTap = false
+            return
+        }
+
+        val path = Path().apply {
+            moveTo(x, y)
+        }
+        val stroke = GestureDescription.StrokeDescription(path, 0, 40)
+        val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+        mainHandler.postDelayed(restoreTouchableRunnable, 250)
+
+        val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                mainHandler.removeCallbacks(restoreTouchableRunnable)
+                restoreTouchable()
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                mainHandler.removeCallbacks(restoreTouchableRunnable)
+                restoreTouchable()
+            }
+        }, null)
+
+        if (!dispatched) {
+            Log.w(TAG, "dispatchGesture returned false")
+            mainHandler.removeCallbacks(restoreTouchableRunnable)
+            restoreTouchable()
+        }
+    }
+
+    private fun restoreTouchable() {
+        if (!isPassingThroughTap) return
+        val view = overlayView ?: return
+        val params = currentLayoutParams ?: return
+        val wm = windowManager ?: return
+
+        params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        try {
+            wm.updateViewLayout(view, params)
+        } catch (e: IllegalArgumentException) {
+            Log.e(TAG, "IllegalArgumentException restoring touchable flag", e)
+        } finally {
+            isPassingThroughTap = false
+        }
     }
 
     private fun updateDebugTint() {
@@ -282,6 +362,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         pullDownRepo.setServiceConnected(false)
+        mainHandler.removeCallbacks(restoreTouchableRunnable)
         try {
             unregisterReceiver(keyguardReceiver)
         } catch (e: IllegalArgumentException) {

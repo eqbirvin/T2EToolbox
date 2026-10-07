@@ -6,26 +6,23 @@ import org.junit.Test
 class PullDownStateMachineTest {
 
     @Test
-    fun testSwipeTransitionsAndTiming() {
-        var currentTime = 1000L
-        val stateMachine = PullDownStateMachine(clock = { currentTime })
+    fun testSwipeAlternationAndReset() {
+        val stateMachine = PullDownStateMachine()
 
         // 1. First swipe -> notifications
         val firstAction = stateMachine.onSwipe()
         assertEquals(PullDownAction.OPEN_NOTIFICATIONS, firstAction)
 
-        // 2. Second swipe at 3999 ms -> QS
-        currentTime += 3999L
+        // 2. Second swipe (no timeout) -> QS
         val secondAction = stateMachine.onSwipe()
         assertEquals(PullDownAction.OPEN_QUICK_SETTINGS, secondAction)
 
-        // 3. Third swipe right after QS -> notifications
-        currentTime += 10L
+        // 3. Third swipe -> notifications again
         val thirdAction = stateMachine.onSwipe()
         assertEquals(PullDownAction.OPEN_NOTIFICATIONS, thirdAction)
 
-        // 4. Second swipe after 4001 ms (window expired) -> notifications
-        currentTime += 4001L
+        // 4. Reset -> clears armed state back to notifications
+        stateMachine.reset()
         val fourthAction = stateMachine.onSwipe()
         assertEquals(PullDownAction.OPEN_NOTIFICATIONS, fourthAction)
     }
