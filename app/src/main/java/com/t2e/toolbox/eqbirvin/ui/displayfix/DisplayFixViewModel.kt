@@ -60,7 +60,9 @@ class DisplayFixViewModel(
     }
 
     fun onRequestPermission() {
-        displayRepo.requestShizukuPermission()
+        viewModelScope.launch {
+            displayRepo.requestShizukuPermission()
+        }
     }
 
     fun toggleFix(enabled: Boolean) {

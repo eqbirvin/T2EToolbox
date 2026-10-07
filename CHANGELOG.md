@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.3.1] - 2026-10-07
+## [0.3.2] - 2026-10-07
+### Fixed
+- Fixed shell injection vulnerability when modifying `enabled_accessibility_services` or display overrides by introducing POSIX single-quote escaping (`ShizukuShell.shellQuote()`) with unit test coverage.
+- Fixed dead restore logic in `disableWithShizuku()`: properly restores `accessibility_enabled` from snapshot (or deletes setting if null), checks exit codes, and only clears snapshot after success.
+- Fixed main-thread binder/IPC calls during shade detection by moving detection, action resolution, and action execution to a dedicated background serialized dispatcher (`swipeDispatcher`).
+- Made `PullDownStateMachine` thread-safe with `@Synchronized` annotations to prevent race conditions during rapid gestures or window switches.
+- Reduced battery usage by removing noisy `typeWindowContentChanged` events from the accessibility service configuration.
+- Updated accessibility service description string in `strings.xml` to accurately describe window reading scope and transparency.
+- Wrapped display fix shell calls and permission requests in `withContext(Dispatchers.IO)` in `DisplayFixRepository`.
+- Fixed service rebind lifecycle leaks by scoping settings flow collectors to a connection-bound `Job` canceled on `onUnbind()`, and guarding overlay attachment against unready states or duplicate views.
+- Removed legacy `temp_shizuku/` scratch directory from workspace.
 ### Added
 - Added "Vibrate on shade expansion" setting to Unified Pull-Down:
   - Allows users to enable or disable the haptic tick feedback triggered when swiping down from the status bar.

@@ -29,6 +29,7 @@ class PullDownStateMachine(
     private var lastSwipeTime: Long = 0L
     private var isArmed: Boolean = false
 
+    @Synchronized
     fun onSwipe(): PullDownAction {
         val now = clock()
         return if (isArmed && (now - lastSwipeTime) <= timeoutMs) {
@@ -41,11 +42,13 @@ class PullDownStateMachine(
         }
     }
 
+    @Synchronized
     fun reset() {
         isArmed = false
         lastSwipeTime = 0L
     }
 
     val isWaitingForSecondSwipe: Boolean
+        @Synchronized
         get() = isArmed && (clock() - lastSwipeTime) <= timeoutMs
 }

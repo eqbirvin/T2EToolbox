@@ -31,6 +31,7 @@ import com.t2e.toolbox.eqbirvin.gesture.PullDownStateMachine
 import com.t2e.toolbox.eqbirvin.gesture.resolveSmartAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -40,6 +41,8 @@ private const val TAG = "UnifiedPullDownService"
 class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val swipeDispatcher = Dispatchers.Default.limitedParallelism(1)
     private val stateMachine = PullDownStateMachine()
 
     private lateinit var settingsRepo: SettingsRepository
@@ -51,6 +54,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private var currentLayoutParams: WindowManager.LayoutParams? = null
     private var currentHeight: Int = 0
 
+    private var isServiceConnected = false
+    private var connectionJob: Job? = null
     private var isViewAttached = false
     private var isFeatureEnabled = false
     private var activeOnLockscreen = true
@@ -69,7 +74,9 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
             val action = intent?.action ?: return
             when (action) {
                 Intent.ACTION_SCREEN_OFF -> {
-                    stateMachine.reset()
+                    serviceScope.launch(swipeDispatcher) {
+                        stateMachine.reset()
+                    }
                 }
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                     updateOverlayDimensions()
@@ -97,9 +104,15 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        isServiceConnected = true
         pullDownRepo.setServiceConnected(true)
 
-        serviceScope.launch {
+        connectionJob?.cancel()
+        val job = SupervisorJob()
+        connectionJob = job
+        val connectionScope = CoroutineScope(serviceScope.coroutineContext + job)
+
+        connectionScope.launch {
             settingsRepo.isPullDownEnabled.collect { enabled ->
                 isFeatureEnabled = enabled
                 syncOverlayAttachment()
@@ -107,42 +120,44 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
             }
         }
 
-        serviceScope.launch {
+        connectionScope.launch {
             settingsRepo.isPullDownOnLockscreen.collect { onLock ->
                 activeOnLockscreen = onLock
                 updateVisibility()
             }
         }
 
-        serviceScope.launch {
+        connectionScope.launch {
             settingsRepo.isPullDownDebugTint.collect { tint ->
                 isDebugTintEnabled = tint
                 updateDebugTint()
             }
         }
 
-        serviceScope.launch {
+        connectionScope.launch {
             settingsRepo.pullDownMethod.collect { method ->
                 currentMethod = method
             }
         }
 
-        serviceScope.launch {
+        connectionScope.launch {
             settingsRepo.isSmartShadeDetectionEnabled.collect { enabled ->
                 isSmartShadeDetectionEnabled = enabled
             }
         }
 
-        serviceScope.launch {
+        connectionScope.launch {
             settingsRepo.isPullDownHapticFeedbackEnabled.collect { enabled ->
                 isHapticFeedbackEnabled = enabled
                 overlayView?.swipeHapticFeedbackEnabled = enabled
             }
         }
 
-        serviceScope.launch {
+        connectionScope.launch {
             pullDownRepo.testActions.collect { action ->
-                executeAction(action)
+                serviceScope.launch(swipeDispatcher) {
+                    executeAction(action)
+                }
             }
         }
     }
@@ -152,7 +167,9 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: ""
             if (pkg.isNotEmpty() && pkg != "com.android.systemui") {
-                stateMachine.reset()
+                serviceScope.launch(swipeDispatcher) {
+                    stateMachine.reset()
+                }
             }
         }
     }
@@ -194,7 +211,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     }
 
     private fun syncOverlayAttachment() {
-        if (isFeatureEnabled) {
+        if (isServiceConnected && isFeatureEnabled) {
             attachOverlay()
         } else {
             detachOverlay()
@@ -202,7 +219,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     }
 
     private fun attachOverlay() {
-        if (isViewAttached) return
+        if (!isServiceConnected || isViewAttached) return
         val wm = windowManager ?: return
         val view = StatusbarOverlayView(
             context = this,
@@ -347,49 +364,52 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     }
 
     private fun onSwipe() {
-        val action = if (isSmartShadeDetectionEnabled) {
-            val shadeState = ShadeStateDetector.detect(this)
-            Log.d(TAG, "Smart shade detection detected state: $shadeState")
-            resolveSmartAction(shadeState)
-        } else {
-            stateMachine.onSwipe()
+        serviceScope.launch(swipeDispatcher) {
+            val action = if (isSmartShadeDetectionEnabled) {
+                val shadeState = ShadeStateDetector.detect(this@UnifiedPullDownAccessibilityService)
+                Log.d(TAG, "Smart shade detection detected state: $shadeState")
+                resolveSmartAction(shadeState)
+            } else {
+                stateMachine.onSwipe()
+            }
+            executeAction(action)
         }
-        executeAction(action)
     }
 
-    private fun executeAction(action: PullDownAction) {
+    private suspend fun executeAction(action: PullDownAction) {
         if (action == PullDownAction.NONE) return
-        serviceScope.launch(Dispatchers.IO) {
-            when (currentMethod) {
-                PullDownMethod.ACCESSIBILITY -> {
-                    when (action) {
-                        PullDownAction.OPEN_NOTIFICATIONS -> performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
-                        PullDownAction.OPEN_QUICK_SETTINGS -> performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
-                        PullDownAction.NONE -> {}
-                    }
+        when (currentMethod) {
+            PullDownMethod.ACCESSIBILITY -> {
+                when (action) {
+                    PullDownAction.OPEN_NOTIFICATIONS -> performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
+                    PullDownAction.OPEN_QUICK_SETTINGS -> performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
+                    PullDownAction.NONE -> {}
                 }
-                PullDownMethod.SHIZUKU -> {
-                    if (displayFixRepo.isShizukuReady()) {
-                        val cmd = when (action) {
-                            PullDownAction.OPEN_NOTIFICATIONS -> "cmd statusbar expand-notifications"
-                            PullDownAction.OPEN_QUICK_SETTINGS -> "cmd statusbar expand-settings"
-                            PullDownAction.NONE -> ""
-                        }
-                        if (cmd.isNotEmpty()) {
-                            val result = ShizukuShell.runShell(cmd)
-                            if (result.exitCode != 0) {
-                                Log.e(TAG, "Shizuku statusbar command failed with exitCode ${result.exitCode}: ${result.stderr}")
-                            }
-                        }
-                    } else {
-                        Log.w(TAG, "Shizuku method selected but Shizuku is not ready; command ignored")
+            }
+            PullDownMethod.SHIZUKU -> {
+                if (displayFixRepo.isShizukuReady()) {
+                    val cmd = when (action) {
+                        PullDownAction.OPEN_NOTIFICATIONS -> "cmd statusbar expand-notifications"
+                        PullDownAction.OPEN_QUICK_SETTINGS -> "cmd statusbar expand-settings"
+                        PullDownAction.NONE -> ""
                     }
+                    if (cmd.isNotEmpty()) {
+                        val result = ShizukuShell.runShell(cmd)
+                        if (result.exitCode != 0) {
+                            Log.e(TAG, "Shizuku statusbar command failed with exitCode ${result.exitCode}: ${result.stderr}")
+                        }
+                    }
+                } else {
+                    Log.w(TAG, "Shizuku method selected but Shizuku is not ready; command ignored")
                 }
             }
         }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        isServiceConnected = false
+        connectionJob?.cancel()
+        connectionJob = null
         pullDownRepo.setServiceConnected(false)
         detachOverlay()
         return super.onUnbind(intent)
@@ -397,6 +417,9 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isServiceConnected = false
+        connectionJob?.cancel()
+        connectionJob = null
         pullDownRepo.setServiceConnected(false)
         mainHandler.removeCallbacks(restoreTouchableRunnable)
         try {

@@ -96,7 +96,7 @@ class UnifiedPullDownRepository(
             }
 
             val newServicesString = newList.joinToString(":")
-            val setServicesResult = ShizukuShell.runShell("settings put secure enabled_accessibility_services \"$newServicesString\"")
+            val setServicesResult = ShizukuShell.runShell("settings put secure enabled_accessibility_services ${ShizukuShell.shellQuote(newServicesString)}")
             if (setServicesResult.exitCode != 0) {
                 return@withContext ShizukuOperationResult(false, "Failed to update enabled services: ${setServicesResult.stderr}")
             }
@@ -135,7 +135,7 @@ class UnifiedPullDownRepository(
             val setServicesResult = if (newServicesString.isEmpty()) {
                 ShizukuShell.runShell("settings delete secure enabled_accessibility_services")
             } else {
-                ShizukuShell.runShell("settings put secure enabled_accessibility_services \"$newServicesString\"")
+                ShizukuShell.runShell("settings put secure enabled_accessibility_services ${ShizukuShell.shellQuote(newServicesString)}")
             }
 
             if (setServicesResult.exitCode != 0) {
@@ -144,8 +144,19 @@ class UnifiedPullDownRepository(
 
             val snapshot = settingsRepo.accessibilitySnapshot.value
             if (newList.isEmpty()) {
-                val restoreVal = if (snapshot?.previousAccessibilityEnabled == "0") "0" else "0"
-                ShizukuShell.runShell("settings put secure accessibility_enabled $restoreVal")
+                val restoreAccessResult = if (snapshot == null) {
+                    ShizukuShell.runShell("settings put secure accessibility_enabled 0")
+                } else if (snapshot.previousAccessibilityEnabled == null ||
+                    snapshot.previousAccessibilityEnabled == "null" ||
+                    snapshot.previousAccessibilityEnabled.isEmpty()
+                ) {
+                    ShizukuShell.runShell("settings delete secure accessibility_enabled")
+                } else {
+                    ShizukuShell.runShell("settings put secure accessibility_enabled ${ShizukuShell.shellQuote(snapshot.previousAccessibilityEnabled)}")
+                }
+                if (restoreAccessResult.exitCode != 0) {
+                    return@withContext ShizukuOperationResult(false, "Failed to restore accessibility_enabled: ${restoreAccessResult.stderr}")
+                }
             }
 
             settingsRepo.saveAccessibilitySnapshot(null)

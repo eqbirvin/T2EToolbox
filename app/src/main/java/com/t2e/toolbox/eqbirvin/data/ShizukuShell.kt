@@ -12,6 +12,10 @@ import java.lang.reflect.InvocationTargetException
 private const val TAG = "ShizukuShell"
 
 object ShizukuShell {
+    fun shellQuote(value: String): String {
+        return "'" + value.replace("'", "'\\''") + "'"
+    }
+
     suspend fun runShell(command: String): ShellResult = withContext(Dispatchers.IO) {
         var process: Process? = null
         try {

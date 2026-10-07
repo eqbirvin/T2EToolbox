@@ -136,7 +136,7 @@ class DisplayFixRepository(
         }
     }
 
-    fun requestShizukuPermission(requestCode: Int = 0) {
+    suspend fun requestShizukuPermission(requestCode: Int = 0) = withContext(Dispatchers.IO) {
         try {
             Shizuku.requestPermission(requestCode)
         } catch (e: IllegalStateException) {
@@ -199,23 +199,23 @@ class DisplayFixRepository(
         return physicalLine?.substringAfter(":")?.trim() ?: "Unknown"
     }
 
-    suspend fun getCurrentDisplayState(): CurrentDisplayState? {
-        if (!isShizukuReady()) return null
+    suspend fun getCurrentDisplayState(): CurrentDisplayState? = withContext(Dispatchers.IO) {
+        if (!isShizukuReady()) return@withContext null
         val sizeOut = runShell("wm size")
         val densityOut = runShell("wm density")
         if (sizeOut.exitCode != 0 || densityOut.exitCode != 0) {
             Log.e(TAG, "Failed to query current display state: size code=${sizeOut.exitCode}, density code=${densityOut.exitCode}")
-            return null
+            return@withContext null
         }
-        return CurrentDisplayState(parseCurrentOrPhysical(sizeOut), parseCurrentOrPhysical(densityOut))
+        CurrentDisplayState(parseCurrentOrPhysical(sizeOut), parseCurrentOrPhysical(densityOut))
     }
 
-    suspend fun enableFix(trigger: String): Boolean {
+    suspend fun enableFix(trigger: String): Boolean = withContext(Dispatchers.IO) {
         if (!isShizukuReady()) {
             settingsRepo.saveLastRunRecord(LastRunRecord(System.currentTimeMillis(), trigger, false, "Shizuku not ready or permission denied"))
-            return false
+            return@withContext false
         }
-        return try {
+        try {
             if (settingsRepo.displaySnapshot.value == null) {
                 val currentSize = runShell("wm size")
                 val currentDensity = runShell("wm density")
@@ -238,17 +238,17 @@ class DisplayFixRepository(
         }
     }
 
-    suspend fun disableFix(trigger: String): Boolean {
+    suspend fun disableFix(trigger: String): Boolean = withContext(Dispatchers.IO) {
         if (!isShizukuReady()) {
             settingsRepo.saveLastRunRecord(LastRunRecord(System.currentTimeMillis(), trigger, false, "Shizuku not ready or permission denied"))
-            return false
+            return@withContext false
         }
 
         val snapshot = settingsRepo.displaySnapshot.value
-        if (snapshot == null) return true
+        if (snapshot == null) return@withContext true
 
-        val sizeCmd = if (snapshot.sizeOverride != null) "wm size ${snapshot.sizeOverride}" else "wm size reset"
-        val densityCmd = if (snapshot.densityOverride != null) "wm density ${snapshot.densityOverride}" else "wm density reset"
+        val sizeCmd = if (snapshot.sizeOverride != null) "wm size ${ShizukuShell.shellQuote(snapshot.sizeOverride)}" else "wm size reset"
+        val densityCmd = if (snapshot.densityOverride != null) "wm density ${ShizukuShell.shellQuote(snapshot.densityOverride)}" else "wm density reset"
 
         val sizeResult = runShell(sizeCmd)
         val densityResult = runShell(densityCmd)
@@ -258,6 +258,6 @@ class DisplayFixRepository(
         }
         val error = if (!success) "Size: ${sizeResult.stderr} | Density: ${densityResult.stderr}" else null
         settingsRepo.saveLastRunRecord(LastRunRecord(System.currentTimeMillis(), trigger, success, error))
-        return success
+        success
     }
 }
