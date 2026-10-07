@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import rikka.shizuku.Shizuku
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import com.t2e.toolbox.eqbirvin.data.ShizukuStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,10 +24,22 @@ fun DisplayFixScreen(
     uiState: DisplayFixUiState,
     onToggle: (Boolean) -> Unit,
     onRunNow: () -> Unit,
+    onRequestPermission: () -> Unit,
     onRefresh: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                onRefresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -62,27 +76,20 @@ fun DisplayFixScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Shizuku Status", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    if (uiState.isShizukuReady) {
-                        Text("Ready", color = MaterialTheme.colorScheme.primary)
-                    } else {
-                        val installed = try {
-                            context.packageManager.getPackageInfo("moe.shizuku.privileged.api", 0)
-                            true
-                        } catch (e: Exception) { false }
-
-                        if (!installed) {
+                    when (uiState.shizukuStatus) {
+                        ShizukuStatus.READY -> {
+                            Text("Ready", color = MaterialTheme.colorScheme.primary)
+                        }
+                        ShizukuStatus.NOT_INSTALLED -> {
                             Text("Shizuku is not installed.", color = MaterialTheme.colorScheme.error)
-                        } else if (!Shizuku.pingBinder()) {
+                        }
+                        ShizukuStatus.NOT_RUNNING -> {
                             Text("Shizuku is installed but not running.", color = MaterialTheme.colorScheme.error)
-                        } else {
+                        }
+                        ShizukuStatus.NO_PERMISSION -> {
                             Text("Shizuku is running, but permission not granted.", color = MaterialTheme.colorScheme.error)
-                            Button(onClick = {
-                                try {
-                                    Shizuku.requestPermission(0)
-                                } catch (e: Exception) {
-                                    // Ignore
-                                }
-                            }) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = onRequestPermission) {
                                 Text("Request Permission")
                             }
                         }
@@ -140,7 +147,7 @@ fun DisplayFixScreen(
                         if (record.success) {
                             Text("Result: Success", color = MaterialTheme.colorScheme.primary)
                         } else {
-                            Text("Result: Failed - ${record.errorMsg}", color = MaterialTheme.colorScheme.error)
+                            Text("Result: Failed - ${record.errorMsg.orEmpty()}", color = MaterialTheme.colorScheme.error)
                         }
                     } ?: run {
                         Text("Last run: Never")

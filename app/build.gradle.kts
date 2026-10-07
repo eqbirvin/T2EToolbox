@@ -12,8 +12,8 @@ android {
         applicationId = "com.t2e.toolbox.eqbirvin"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
 
         vectorDrawables {
             useSupportLibrary = true
@@ -64,6 +64,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     // Shizuku
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
@@ -78,6 +81,7 @@ dependencies {
 val versionName = android.defaultConfig.versionName
 
 tasks.register<Copy>("copyReleaseApk") {
+    notCompatibleWithConfigurationCache("Accesses rootProject directory and dynamic APK renaming")
     dependsOn("assembleRelease")
     from(layout.buildDirectory.dir("outputs/apk/release"))
     include("*.apk")

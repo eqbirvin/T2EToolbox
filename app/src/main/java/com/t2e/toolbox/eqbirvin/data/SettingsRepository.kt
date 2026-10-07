@@ -2,14 +2,18 @@ package com.t2e.toolbox.eqbirvin.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+
+private const val TAG = "SettingsRepository"
 
 @Serializable
 data class DisplaySnapshot(
@@ -33,14 +37,30 @@ class SettingsRepository(context: Context) {
 
     private val _lastRunRecord = MutableStateFlow<LastRunRecord?>(
         prefs.getString("last_run_record", null)?.let {
-            try { Json.decodeFromString(it) } catch (e: Exception) { null }
+            try {
+                Json.decodeFromString<LastRunRecord>(it)
+            } catch (e: SerializationException) {
+                Log.e(TAG, "Failed to decode last_run_record JSON", e)
+                null
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Illegal argument while decoding last_run_record JSON", e)
+                null
+            }
         }
     )
     val lastRunRecord: StateFlow<LastRunRecord?> = _lastRunRecord.asStateFlow()
 
     private val _displaySnapshot = MutableStateFlow<DisplaySnapshot?>(
         prefs.getString("display_snapshot", null)?.let {
-            try { Json.decodeFromString(it) } catch (e: Exception) { null }
+            try {
+                Json.decodeFromString<DisplaySnapshot>(it)
+            } catch (e: SerializationException) {
+                Log.e(TAG, "Failed to decode display_snapshot JSON", e)
+                null
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Illegal argument while decoding display_snapshot JSON", e)
+                null
+            }
         }
     )
     val displaySnapshot: StateFlow<DisplaySnapshot?> = _displaySnapshot.asStateFlow()
