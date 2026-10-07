@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.3] - 2026-10-07
+### Fixed
+- Fixed overlay getting killed on status bar tap and restored debug area tint by removing fragile window insets visibility listener that was falsely setting the overlay to `INVISIBLE` and destroying its surface.
+- Improved tap pass-through responsiveness by treating all non-downward gestures on `ACTION_UP` as underlying status bar taps.
+- Added automatic shade dismissal detection: transitioning away from SystemUI window immediately resets the pull-down state machine to opening notifications.
+
 ## [0.2.2] - 2026-10-07
 ### Fixed
 - Fixed tap pass-through crash by appending a non-empty line segment to `Path` and wrapping gesture creation and dispatch in structured exception handling, preventing service termination and ensuring touchability restoration.

@@ -54,7 +54,6 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private var activeOnLockscreen = true
     private var isDebugTintEnabled = false
     private var currentMethod = PullDownMethod.ACCESSIBILITY
-    private var isStatusBarVisible = true
     private var isPassingThroughTap = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private val restoreTouchableRunnable = Runnable {
@@ -69,10 +68,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                     stateMachine.reset()
                 }
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
-                    isStatusBarVisible = true
                     updateOverlayDimensions()
                     updateVisibility()
-                    overlayView?.requestApplyInsets()
                 }
             }
         }
@@ -134,7 +131,13 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Only draws an overlay; screen content events are filtered and ignored
+        if (event == null) return
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val pkg = event.packageName?.toString() ?: ""
+            if (pkg.isNotEmpty() && pkg != "com.android.systemui") {
+                stateMachine.reset()
+            }
+        }
     }
 
     override fun onInterrupt() {
@@ -205,15 +208,6 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         currentLayoutParams = params
         updateDebugTint()
 
-        view.setOnApplyWindowInsetsListener { _, insets ->
-            val statusBarsVisible = insets.isVisible(WindowInsets.Type.statusBars())
-            if (isStatusBarVisible != statusBarsVisible) {
-                isStatusBarVisible = statusBarsVisible
-                updateVisibility()
-            }
-            insets
-        }
-
         try {
             wm.addView(view, params)
             isViewAttached = true
@@ -247,8 +241,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private fun updateVisibility() {
         val view = overlayView ?: return
         val hideOnLock = !activeOnLockscreen && checkKeyguardLocked()
-        val shouldBeVisible = isFeatureEnabled && isStatusBarVisible && !hideOnLock
-        view.visibility = if (shouldBeVisible) View.VISIBLE else View.INVISIBLE
+        val shouldBeVisible = isFeatureEnabled && !hideOnLock
+        view.visibility = if (shouldBeVisible) View.VISIBLE else View.GONE
     }
 
     private fun passThroughTap(x: Float, y: Float) {
