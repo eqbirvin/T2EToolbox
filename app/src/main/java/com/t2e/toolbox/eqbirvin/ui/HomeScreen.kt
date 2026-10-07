@@ -9,7 +9,10 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onNavigateToDisplayFix: () -> Unit) {
+fun HomeScreen(
+    onNavigateToDisplayFix: () -> Unit,
+    onNavigateToUnifiedPullDown: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("T2E Toolbox") })
@@ -19,7 +22,8 @@ fun HomeScreen(onNavigateToDisplayFix: () -> Unit) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
                 modifier = Modifier
@@ -30,6 +34,18 @@ fun HomeScreen(onNavigateToDisplayFix: () -> Unit) {
                     Text("Display Fix", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Adjust rendering resolution and density via Shizuku.")
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToUnifiedPullDown() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Unified Pull-Down", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Stock-style status bar swipe (notifications, then Quick Settings).")
                 }
             }
         }

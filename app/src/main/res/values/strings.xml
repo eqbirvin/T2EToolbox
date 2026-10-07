@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">T2E Toolbox</string>
+    <string name="unified_pulldown_service_name">Unified Pull-Down Service</string>
+    <string name="unified_pulldown_service_description">Draws an invisible touch strip over the status bar to provide stock notification and Quick Settings swipe gestures. Does not read screen content or collect personal information.</string>
 </resources>

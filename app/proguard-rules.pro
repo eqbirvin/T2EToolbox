@@ -12,6 +12,9 @@
 -keep class androidx.work.** { *; }
 -keep class com.t2e.toolbox.eqbirvin.worker.** { *; }
 
+# Accessibility Service & Overlay
+-keep class com.t2e.toolbox.eqbirvin.service.** { *; }
+
 -keepattributes *Annotation*,InnerClasses
 -keep class kotlinx.serialization.** { *; }
 -keepclassmembers class kotlinx.serialization.** {

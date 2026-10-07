@@ -12,8 +12,8 @@ android {
         applicationId = "com.t2e.toolbox.eqbirvin"
         minSdk = 31
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.2.0"
 
         vectorDrawables {
             useSupportLibrary = true
@@ -76,6 +76,9 @@ dependencies {
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // Unit test
+    testImplementation("junit:junit:4.13.2")
 }
 
 val versionName = android.defaultConfig.versionName
