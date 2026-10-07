@@ -75,10 +75,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
 
+val versionName = android.defaultConfig.versionName
+
 tasks.register<Copy>("copyReleaseApk") {
     dependsOn("assembleRelease")
     from(layout.buildDirectory.dir("outputs/apk/release"))
     include("*.apk")
     into(rootProject.layout.projectDirectory.dir("releases"))
-    rename { "t2e.toolbox.v${android.defaultConfig.versionName}.apk" }
+    rename { "t2e.toolbox.v${versionName}.apk" }
 }
