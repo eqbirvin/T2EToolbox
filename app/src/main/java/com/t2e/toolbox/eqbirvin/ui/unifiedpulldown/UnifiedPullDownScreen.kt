@@ -20,6 +20,7 @@ data class UnifiedPullDownActions(
     val onToggleLockscreen: (Boolean) -> Unit,
     val onToggleDebugTint: (Boolean) -> Unit,
     val onToggleSmartShadeDetection: (Boolean) -> Unit,
+    val onToggleHapticFeedback: (Boolean) -> Unit,
     val onSelectMethod: (PullDownMethod) -> Unit,
     val onEnableWithShizuku: () -> Unit,
     val onDisableWithShizuku: () -> Unit,
@@ -198,6 +199,29 @@ fun UnifiedPullDownScreen(
                         Switch(
                             checked = uiState.isActiveOnLockscreen,
                             onCheckedChange = actions.onToggleLockscreen
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Vibrate on shade expansion",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Provide haptic tick feedback when a swipe down is detected.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.isHapticFeedbackEnabled,
+                            onCheckedChange = actions.onToggleHapticFeedback
                         )
                     }
 

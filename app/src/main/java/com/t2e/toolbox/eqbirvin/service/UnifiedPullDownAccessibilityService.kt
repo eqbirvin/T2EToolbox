@@ -56,6 +56,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private var activeOnLockscreen = true
     private var isDebugTintEnabled = false
     private var isSmartShadeDetectionEnabled = true
+    private var isHapticFeedbackEnabled = true
     private var currentMethod = PullDownMethod.ACCESSIBILITY
     private var isPassingThroughTap = false
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -133,6 +134,13 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         }
 
         serviceScope.launch {
+            settingsRepo.isPullDownHapticFeedbackEnabled.collect { enabled ->
+                isHapticFeedbackEnabled = enabled
+                overlayView?.swipeHapticFeedbackEnabled = enabled
+            }
+        }
+
+        serviceScope.launch {
             pullDownRepo.testActions.collect { action ->
                 executeAction(action)
             }
@@ -198,6 +206,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         val wm = windowManager ?: return
         val view = StatusbarOverlayView(
             context = this,
+            swipeHapticFeedbackEnabled = isHapticFeedbackEnabled,
             onSwipeDetected = { onSwipe() },
             onTapDetected = { x, y -> passThroughTap(x, y) }
         ).also { overlayView = it }

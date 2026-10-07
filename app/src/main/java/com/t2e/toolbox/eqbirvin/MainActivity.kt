@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleLockscreen = { viewModel.toggleLockscreen(it) },
                                     onToggleDebugTint = { viewModel.toggleDebugTint(it) },
                                     onToggleSmartShadeDetection = { viewModel.toggleSmartShadeDetection(it) },
+                                    onToggleHapticFeedback = { viewModel.toggleHapticFeedback(it) },
                                     onSelectMethod = { viewModel.setMethod(it) },
                                     onEnableWithShizuku = { viewModel.enableWithShizuku() },
                                     onDisableWithShizuku = { viewModel.disableWithShizuku() },

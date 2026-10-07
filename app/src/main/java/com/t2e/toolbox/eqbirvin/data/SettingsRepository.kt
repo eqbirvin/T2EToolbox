@@ -91,6 +91,9 @@ class SettingsRepository(context: Context) {
     private val _isSmartShadeDetectionEnabled = MutableStateFlow(prefs.getBoolean("pulldown_smart_shade_detection", true))
     val isSmartShadeDetectionEnabled: StateFlow<Boolean> = _isSmartShadeDetectionEnabled.asStateFlow()
 
+    private val _isPullDownHapticFeedbackEnabled = MutableStateFlow(prefs.getBoolean("pulldown_haptic_feedback", true))
+    val isPullDownHapticFeedbackEnabled: StateFlow<Boolean> = _isPullDownHapticFeedbackEnabled.asStateFlow()
+
     private val _pullDownMethod = MutableStateFlow(
         prefs.getString("pulldown_method", null)?.let {
             try {
@@ -155,6 +158,11 @@ class SettingsRepository(context: Context) {
     suspend fun setSmartShadeDetectionEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("pulldown_smart_shade_detection", enabled).apply()
         _isSmartShadeDetectionEnabled.value = enabled
+    }
+
+    suspend fun setPullDownHapticFeedbackEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("pulldown_haptic_feedback", enabled).apply()
+        _isPullDownHapticFeedbackEnabled.value = enabled
     }
 
     suspend fun setPullDownMethod(method: PullDownMethod) = withContext(Dispatchers.IO) {

@@ -27,6 +27,7 @@ data class UnifiedPullDownUiState(
     val isActiveOnLockscreen: Boolean = true,
     val isDebugTintEnabled: Boolean = false,
     val isSmartShadeDetectionEnabled: Boolean = true,
+    val isHapticFeedbackEnabled: Boolean = true,
     val method: PullDownMethod = PullDownMethod.ACCESSIBILITY,
     val shizukuStatus: ShizukuStatus = ShizukuStatus.NOT_RUNNING,
     val shizukuMessage: String? = null,
@@ -53,11 +54,16 @@ data class UnifiedPullDownUiState(
         }
 }
 
-private data class SettingsTuple(
+private data class PullDownToggles(
     val enabled: Boolean,
     val onLock: Boolean,
     val debugTint: Boolean,
     val smartShade: Boolean,
+    val hapticFeedback: Boolean
+)
+
+private data class SettingsTuple(
+    val toggles: PullDownToggles,
     val method: PullDownMethod
 )
 
@@ -79,14 +85,21 @@ class UnifiedPullDownViewModel(
         }
     }
 
-    private val settingsFlow = combine(
+    private val togglesFlow = combine(
         settingsRepo.isPullDownEnabled,
         settingsRepo.isPullDownOnLockscreen,
         settingsRepo.isPullDownDebugTint,
         settingsRepo.isSmartShadeDetectionEnabled,
+        settingsRepo.isPullDownHapticFeedbackEnabled
+    ) { enabled, onLock, debugTint, smartShade, haptic ->
+        PullDownToggles(enabled, onLock, debugTint, smartShade, haptic)
+    }
+
+    private val settingsFlow = combine(
+        togglesFlow,
         settingsRepo.pullDownMethod
-    ) { enabled, onLock, debugTint, smartShade, method ->
-        SettingsTuple(enabled, onLock, debugTint, smartShade, method)
+    ) { toggles, method ->
+        SettingsTuple(toggles, method)
     }
 
     val uiState: StateFlow<UnifiedPullDownUiState> = combine(
@@ -98,10 +111,11 @@ class UnifiedPullDownViewModel(
     ) { serviceState, settings, shizukuStatus, msg, working ->
         UnifiedPullDownUiState(
             serviceState = serviceState,
-            isEnabled = settings.enabled,
-            isActiveOnLockscreen = settings.onLock,
-            isDebugTintEnabled = settings.debugTint,
-            isSmartShadeDetectionEnabled = settings.smartShade,
+            isEnabled = settings.toggles.enabled,
+            isActiveOnLockscreen = settings.toggles.onLock,
+            isDebugTintEnabled = settings.toggles.debugTint,
+            isSmartShadeDetectionEnabled = settings.toggles.smartShade,
+            isHapticFeedbackEnabled = settings.toggles.hapticFeedback,
             method = settings.method,
             shizukuStatus = shizukuStatus,
             shizukuMessage = msg,
@@ -141,6 +155,12 @@ class UnifiedPullDownViewModel(
     fun toggleSmartShadeDetection(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepo.setSmartShadeDetectionEnabled(enabled)
+        }
+    }
+
+    fun toggleHapticFeedback(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepo.setPullDownHapticFeedbackEnabled(enabled)
         }
     }
 

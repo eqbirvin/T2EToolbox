@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1] - 2026-10-07
+### Added
+- Added "Vibrate on shade expansion" setting to Unified Pull-Down:
+  - Allows users to enable or disable the haptic tick feedback triggered when swiping down from the status bar.
+  - Defaults to enabled, backed by `SettingsRepository` and reactive StateFlow across UI and service.
+
 ## [0.3.0] - 2026-10-07
 ### Added
 - Added "Smart Shade Detection" setting to Unified Pull-Down:

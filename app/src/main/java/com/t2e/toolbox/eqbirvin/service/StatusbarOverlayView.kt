@@ -10,6 +10,7 @@ import kotlin.math.abs
 
 class StatusbarOverlayView(
     context: Context,
+    var swipeHapticFeedbackEnabled: Boolean = true,
     private val onSwipeDetected: () -> Unit,
     private val onTapDetected: (Float, Float) -> Unit = { _, _ -> }
 ) : View(context) {
@@ -75,7 +76,9 @@ class StatusbarOverlayView(
     }
 
     private fun triggerSwipe() {
-        performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        if (swipeHapticFeedbackEnabled) {
+            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        }
         onSwipeDetected()
     }
 
