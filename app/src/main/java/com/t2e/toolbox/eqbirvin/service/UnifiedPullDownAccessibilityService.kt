@@ -184,7 +184,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private fun attachOverlay() {
         if (isViewAttached) return
         val wm = windowManager ?: return
-        val view = overlayView ?: StatusbarOverlayView(
+        val view = StatusbarOverlayView(
             context = this,
             onSwipeDetected = { onSwipe() },
             onTapDetected = { x, y -> passThroughTap(x, y) }
@@ -207,8 +207,10 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
         view.setOnApplyWindowInsetsListener { _, insets ->
             val statusBarsVisible = insets.isVisible(WindowInsets.Type.statusBars())
-            isStatusBarVisible = statusBarsVisible
-            updateVisibility()
+            if (isStatusBarVisible != statusBarsVisible) {
+                isStatusBarVisible = statusBarsVisible
+                updateVisibility()
+            }
             insets
         }
 
@@ -233,6 +235,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "IllegalArgumentException removing overlay view", e)
         }
+        overlayView = null
         isViewAttached = false
     }
 
@@ -264,28 +267,43 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
             return
         }
 
-        val path = Path().apply {
-            moveTo(x, y)
-        }
-        val stroke = GestureDescription.StrokeDescription(path, 0, 40)
-        val gesture = GestureDescription.Builder().addStroke(stroke).build()
-
         mainHandler.postDelayed(restoreTouchableRunnable, 250)
 
-        val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
-            override fun onCompleted(gestureDescription: GestureDescription?) {
+        try {
+            val path = Path().apply {
+                moveTo(x, y)
+                lineTo(x, y + 1f)
+            }
+            val stroke = GestureDescription.StrokeDescription(path, 0, 40)
+            val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+            val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) {
+                    mainHandler.removeCallbacks(restoreTouchableRunnable)
+                    restoreTouchable()
+                }
+
+                override fun onCancelled(gestureDescription: GestureDescription?) {
+                    mainHandler.removeCallbacks(restoreTouchableRunnable)
+                    restoreTouchable()
+                }
+            }, null)
+
+            if (!dispatched) {
+                Log.w(TAG, "dispatchGesture returned false")
                 mainHandler.removeCallbacks(restoreTouchableRunnable)
                 restoreTouchable()
             }
-
-            override fun onCancelled(gestureDescription: GestureDescription?) {
-                mainHandler.removeCallbacks(restoreTouchableRunnable)
-                restoreTouchable()
-            }
-        }, null)
-
-        if (!dispatched) {
-            Log.w(TAG, "dispatchGesture returned false")
+        } catch (e: IllegalArgumentException) {
+            Log.e(TAG, "IllegalArgumentException in passThroughTap gesture", e)
+            mainHandler.removeCallbacks(restoreTouchableRunnable)
+            restoreTouchable()
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException in passThroughTap gesture", e)
+            mainHandler.removeCallbacks(restoreTouchableRunnable)
+            restoreTouchable()
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "IllegalStateException in passThroughTap gesture", e)
             mainHandler.removeCallbacks(restoreTouchableRunnable)
             restoreTouchable()
         }

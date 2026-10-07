@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2] - 2026-10-07
+### Fixed
+- Fixed tap pass-through crash by appending a non-empty line segment to `Path` and wrapping gesture creation and dispatch in structured exception handling, preventing service termination and ensuring touchability restoration.
+- Fixed in-app toggle re-activation by nulling the detached overlay view reference so toggling Unified Pull-Down cleanly adds a fresh view to WindowManager.
+- Restored second-swipe timeout set to 3 seconds (`3000ms`), after which pull-down resets to opening the notification shade.
+- Updated Unified Pull-Down UI copy to indicate the 3-second window.
+
 ## [0.2.1] - 2026-10-06
 ### Fixed
 - Fixed overlay disappearing permanently after turning off the screen by recovering status bar visibility on screen-on/user-present, requesting insets on wake, and using `View.INVISIBLE` to preserve insets dispatch.

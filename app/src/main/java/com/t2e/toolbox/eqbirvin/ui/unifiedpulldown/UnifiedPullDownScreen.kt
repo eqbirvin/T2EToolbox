@@ -73,7 +73,7 @@ fun UnifiedPullDownScreen(
                     Text(
                         "Replaces the vendor's split touch behavior (left=notifications, right=Quick Settings) with stock Android behavior:\n" +
                         "1. Swiping down anywhere opens notifications.\n" +
-                        "2. Swiping down again opens Quick Settings."
+                        "2. Swiping down again within 3 seconds opens Quick Settings."
                     )
                 }
             }
