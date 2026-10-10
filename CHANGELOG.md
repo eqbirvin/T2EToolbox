@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - 2026-10-09
+### Added
+- Added "Volume Mode Switcher" feature:
+  - Adds an invisible "Volume Mode" launcher app shortcut designed for the Unihertz Titan 2 Elite programmable side key (Settings -> Programmable Key -> Launch app).
+  - Pressing the physical side key cycles smoothly through Sound, Vibrate, and Silent modes for the phone without opening any app screen.
+  - Transparent activity (`Theme.Transparent`) with zero window animations, completing within milliseconds and finishing immediately.
+  - Distinct haptic vibration cues tailored to each mode (double pulse on vibrate, crisp tick on sound, subtle tap on silent).
+  - Optional on-screen Toast indicator displaying the active sound mode.
+  - Configurable cycle sequences in T2E Toolbox: Sound -> Vibrate -> Silent (default), Sound <-> Vibrate, Sound <-> Silent, Vibrate <-> Silent.
+  - 1-tap Do Not Disturb permission granting via Shizuku (`cmd notification allow_dnd`) with system settings fallback.
+  - In-app interactive testing controls and setup guide for the Titan 2 Elite.
+
 ## [0.3.2] - 2026-10-07
 ### Fixed
 - Fixed shell injection vulnerability when modifying `enabled_accessibility_services` or display overrides by introducing POSIX single-quote escaping (`ShizukuShell.shellQuote()`) with unit test coverage.

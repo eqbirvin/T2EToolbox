@@ -41,6 +41,14 @@ data class AccessibilitySettingsSnapshot(
     val previousAccessibilityEnabled: String?
 )
 
+@Serializable
+enum class VolumeCycleOption {
+    ALL_MODES,
+    SOUND_AND_VIBRATE,
+    SOUND_AND_SILENT,
+    VIBRATE_AND_SILENT
+}
+
 class SettingsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("t2e_settings", Context.MODE_PRIVATE)
 
@@ -121,6 +129,28 @@ class SettingsRepository(context: Context) {
     )
     val accessibilitySnapshot: StateFlow<AccessibilitySettingsSnapshot?> = _accessibilitySnapshot.asStateFlow()
 
+    // Volume Mode Switcher
+    private val _isVolumeModeShortcutEnabled = MutableStateFlow(prefs.getBoolean("volume_mode_shortcut_enabled", false))
+    val isVolumeModeShortcutEnabled: StateFlow<Boolean> = _isVolumeModeShortcutEnabled.asStateFlow()
+
+    private val _isVolumeModeToastEnabled = MutableStateFlow(prefs.getBoolean("volume_mode_toast_enabled", true))
+    val isVolumeModeToastEnabled: StateFlow<Boolean> = _isVolumeModeToastEnabled.asStateFlow()
+
+    private val _isVolumeModeHapticEnabled = MutableStateFlow(prefs.getBoolean("volume_mode_haptic_enabled", true))
+    val isVolumeModeHapticEnabled: StateFlow<Boolean> = _isVolumeModeHapticEnabled.asStateFlow()
+
+    private val _volumeModeCycleOption = MutableStateFlow(
+        prefs.getString("volume_mode_cycle_option", null)?.let {
+            try {
+                VolumeCycleOption.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Illegal argument while decoding volume_mode_cycle_option", e)
+                VolumeCycleOption.ALL_MODES
+            }
+        } ?: VolumeCycleOption.ALL_MODES
+    )
+    val volumeModeCycleOption: StateFlow<VolumeCycleOption> = _volumeModeCycleOption.asStateFlow()
+
     suspend fun setDisplayFixEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("display_fix_enabled", enabled).apply()
         _isDisplayFixEnabled.value = enabled
@@ -177,5 +207,25 @@ class SettingsRepository(context: Context) {
             prefs.edit().putString("pulldown_accessibility_snapshot", Json.encodeToString(snapshot)).apply()
         }
         _accessibilitySnapshot.value = snapshot
+    }
+
+    suspend fun setVolumeModeShortcutEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("volume_mode_shortcut_enabled", enabled).apply()
+        _isVolumeModeShortcutEnabled.value = enabled
+    }
+
+    suspend fun setVolumeModeToastEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("volume_mode_toast_enabled", enabled).apply()
+        _isVolumeModeToastEnabled.value = enabled
+    }
+
+    suspend fun setVolumeModeHapticEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("volume_mode_haptic_enabled", enabled).apply()
+        _isVolumeModeHapticEnabled.value = enabled
+    }
+
+    suspend fun setVolumeModeCycleOption(option: VolumeCycleOption) = withContext(Dispatchers.IO) {
+        prefs.edit().putString("volume_mode_cycle_option", option.name).apply()
+        _volumeModeCycleOption.value = option
     }
 }

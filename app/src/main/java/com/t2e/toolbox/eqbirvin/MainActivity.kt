@@ -23,6 +23,9 @@ import com.t2e.toolbox.eqbirvin.ui.displayfix.DisplayFixViewModel
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownActions
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownScreen
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownViewModel
+import com.t2e.toolbox.eqbirvin.ui.volumemode.VolumeModeActions
+import com.t2e.toolbox.eqbirvin.ui.volumemode.VolumeModeScreen
+import com.t2e.toolbox.eqbirvin.ui.volumemode.VolumeModeViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -32,6 +35,7 @@ class MainActivity : ComponentActivity() {
         val settingsRepo = app.settingsRepository
         val displayRepo = app.displayFixRepository
         val pullDownRepo = app.unifiedPullDownRepository
+        val volumeRepo = app.volumeModeRepository
 
         setContent {
             MaterialTheme {
@@ -44,12 +48,13 @@ class MainActivity : ComponentActivity() {
                         composable("home") {
                             HomeScreen(
                                 onNavigateToDisplayFix = { navController.navigate("displayFix") },
-                                onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") }
+                                onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") },
+                                onNavigateToVolumeMode = { navController.navigate("volumeMode") }
                             )
                         }
                         composable("displayFix") {
                             val viewModel: DisplayFixViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo)
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo)
                             )
                             val uiState by viewModel.uiState.collectAsState()
 
@@ -64,7 +69,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("unifiedPullDown") {
                             val viewModel: UnifiedPullDownViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo)
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo)
                             )
                             val uiState by viewModel.uiState.collectAsState()
 
@@ -89,6 +94,34 @@ class MainActivity : ComponentActivity() {
                             }
 
                             UnifiedPullDownScreen(
+                                uiState = uiState,
+                                actions = actions
+                            )
+                        }
+                        composable("volumeMode") {
+                            val viewModel: VolumeModeViewModel = viewModel(
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo)
+                            )
+                            val uiState by viewModel.uiState.collectAsState()
+
+                            val actions = remember(viewModel, navController) {
+                                VolumeModeActions(
+                                    onToggleShortcut = { viewModel.toggleShortcut(it) },
+                                    onToggleToast = { viewModel.toggleToast(it) },
+                                    onToggleHaptic = { viewModel.toggleHaptic(it) },
+                                    onSetCycleOption = { viewModel.setCycleOption(it) },
+                                    onCycleMode = { viewModel.cycleMode() },
+                                    onSetSpecificMode = { viewModel.setSpecificMode(it) },
+                                    onGrantDndViaShizuku = { viewModel.grantDndViaShizuku() },
+                                    onOpenDndSettings = {
+                                        startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                                    },
+                                    onRefresh = { viewModel.refreshState() },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            VolumeModeScreen(
                                 uiState = uiState,
                                 actions = actions
                             )

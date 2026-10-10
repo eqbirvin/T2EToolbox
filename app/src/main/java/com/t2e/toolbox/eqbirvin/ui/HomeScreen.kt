@@ -11,7 +11,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeScreen(
     onNavigateToDisplayFix: () -> Unit,
-    onNavigateToUnifiedPullDown: () -> Unit
+    onNavigateToUnifiedPullDown: () -> Unit,
+    onNavigateToVolumeMode: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -46,6 +47,18 @@ fun HomeScreen(
                     Text("Unified Pull-Down", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Stock-style status bar swipe (notifications, then Quick Settings).")
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToVolumeMode() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Volume Mode Switcher", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Side key shortcut to cycle between Sound, Vibrate, and Silent modes.")
                 }
             }
         }
