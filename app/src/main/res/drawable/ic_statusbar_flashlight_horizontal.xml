@@ -1,0 +1,42 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="16dp"
+    android:viewportWidth="32"
+    android:viewportHeight="16">
+    <!-- Flashlight Body & Head -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,5 L14,5 L19,2.5 L20.5,2.5 C21,2.5 21,13.5 20.5,13.5 L19,13.5 L14,11 L3,11 C2.2,11 1.5,10.3 1.5,8 C1.5,5.7 2.2,5 3,5 Z" />
+    <!-- Flashlight Switch Button -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8,3.2 C8,2.7 8.4,2.3 8.9,2.3 L10.6,2.3 C11.1,2.3 11.5,2.7 11.5,3.2 L11.5,5 L8,5 Z" />
+    <!-- Grip accents -->
+    <path
+        android:strokeColor="#44000000"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round"
+        android:pathData="M6,6.5 L6,9.5 M9,6.5 L9,9.5" />
+    <!-- Front Lens Glow Rim -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M20.5,3.5 L20.5,12.5" />
+    <!-- Light Beams -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M23,4.2 L28.5,2.5" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M23.5,8 L30.5,8" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M23,11.8 L28.5,13.5" />
+</vector>

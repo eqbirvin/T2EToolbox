@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0] - 2026-10-13
+### Added
+- Added "Flashlight Indicator" feature:
+  - Displays a clean horizontal flashlight badge in the dead center of the status bar whenever the flashlight is active.
+  - Helps prevent accidental battery drain on the Unihertz Titan 2 Elite when the programmable side key is mapped to toggle the flashlight.
+  - Draws directly over the status bar using `TYPE_ACCESSIBILITY_OVERLAY` hosted seamlessly within `UnifiedPullDownAccessibilityService`.
+  - Non-intrusive touch behavior: transparent touch pass-through (`FLAG_NOT_TOUCHABLE`) allows status bar gestures and shade expansion to work unhindered.
+  - Global torch monitoring via `CameraManager.TorchCallback` tracking activation from physical buttons, Quick Settings tiles, or third-party camera apps.
+  - Customizable indicator colors: Amber Glow (default), Bright Yellow, and Crisp White.
+  - Optional "Tap Indicator to Turn Off" setting enabling instant touch dismissal.
+  - In-app interactive testing controls and Titan 2 Elite hardware button protection guide.
+
 ## [0.4.0] - 2026-10-09
 ### Added
 - Added "Volume Mode Switcher" feature:

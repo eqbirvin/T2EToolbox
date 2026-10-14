@@ -49,6 +49,13 @@ enum class VolumeCycleOption {
     VIBRATE_AND_SILENT
 }
 
+@Serializable
+enum class FlashlightIndicatorColor(val colorArgb: Long, val label: String) {
+    AMBER(0xFFFFB300, "Amber Glow"),
+    YELLOW(0xFFFFEB3B, "Bright Yellow"),
+    WHITE(0xFFFFFFFF, "Crisp White")
+}
+
 class SettingsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("t2e_settings", Context.MODE_PRIVATE)
 
@@ -151,6 +158,25 @@ class SettingsRepository(context: Context) {
     )
     val volumeModeCycleOption: StateFlow<VolumeCycleOption> = _volumeModeCycleOption.asStateFlow()
 
+    // Flashlight Status Bar Indicator
+    private val _isFlashlightIndicatorEnabled = MutableStateFlow(prefs.getBoolean("flashlight_indicator_enabled", true))
+    val isFlashlightIndicatorEnabled: StateFlow<Boolean> = _isFlashlightIndicatorEnabled.asStateFlow()
+
+    private val _isFlashlightIndicatorTapToDismiss = MutableStateFlow(prefs.getBoolean("flashlight_indicator_tap_dismiss", false))
+    val isFlashlightIndicatorTapToDismiss: StateFlow<Boolean> = _isFlashlightIndicatorTapToDismiss.asStateFlow()
+
+    private val _flashlightIndicatorColor = MutableStateFlow(
+        prefs.getString("flashlight_indicator_color", null)?.let {
+            try {
+                FlashlightIndicatorColor.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Illegal argument while decoding flashlight_indicator_color", e)
+                FlashlightIndicatorColor.AMBER
+            }
+        } ?: FlashlightIndicatorColor.AMBER
+    )
+    val flashlightIndicatorColor: StateFlow<FlashlightIndicatorColor> = _flashlightIndicatorColor.asStateFlow()
+
     suspend fun setDisplayFixEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("display_fix_enabled", enabled).apply()
         _isDisplayFixEnabled.value = enabled
@@ -227,5 +253,20 @@ class SettingsRepository(context: Context) {
     suspend fun setVolumeModeCycleOption(option: VolumeCycleOption) = withContext(Dispatchers.IO) {
         prefs.edit().putString("volume_mode_cycle_option", option.name).apply()
         _volumeModeCycleOption.value = option
+    }
+
+    suspend fun setFlashlightIndicatorEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("flashlight_indicator_enabled", enabled).apply()
+        _isFlashlightIndicatorEnabled.value = enabled
+    }
+
+    suspend fun setFlashlightIndicatorTapToDismiss(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("flashlight_indicator_tap_dismiss", enabled).apply()
+        _isFlashlightIndicatorTapToDismiss.value = enabled
+    }
+
+    suspend fun setFlashlightIndicatorColor(color: FlashlightIndicatorColor) = withContext(Dispatchers.IO) {
+        prefs.edit().putString("flashlight_indicator_color", color.name).apply()
+        _flashlightIndicatorColor.value = color
     }
 }

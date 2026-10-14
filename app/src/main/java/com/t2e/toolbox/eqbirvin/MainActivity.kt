@@ -20,6 +20,9 @@ import com.t2e.toolbox.eqbirvin.ui.AppViewModelFactory
 import com.t2e.toolbox.eqbirvin.ui.HomeScreen
 import com.t2e.toolbox.eqbirvin.ui.displayfix.DisplayFixScreen
 import com.t2e.toolbox.eqbirvin.ui.displayfix.DisplayFixViewModel
+import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorActions
+import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorScreen
+import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorViewModel
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownActions
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownScreen
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownViewModel
@@ -36,6 +39,7 @@ class MainActivity : ComponentActivity() {
         val displayRepo = app.displayFixRepository
         val pullDownRepo = app.unifiedPullDownRepository
         val volumeRepo = app.volumeModeRepository
+        val flashlightRepo = app.flashlightRepository
 
         setContent {
             MaterialTheme {
@@ -49,12 +53,13 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onNavigateToDisplayFix = { navController.navigate("displayFix") },
                                 onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") },
-                                onNavigateToVolumeMode = { navController.navigate("volumeMode") }
+                                onNavigateToVolumeMode = { navController.navigate("volumeMode") },
+                                onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") }
                             )
                         }
                         composable("displayFix") {
                             val viewModel: DisplayFixViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo)
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
                             )
                             val uiState by viewModel.uiState.collectAsState()
 
@@ -69,7 +74,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("unifiedPullDown") {
                             val viewModel: UnifiedPullDownViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo)
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
                             )
                             val uiState by viewModel.uiState.collectAsState()
 
@@ -100,7 +105,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("volumeMode") {
                             val viewModel: VolumeModeViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo)
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
                             )
                             val uiState by viewModel.uiState.collectAsState()
 
@@ -122,6 +127,31 @@ class MainActivity : ComponentActivity() {
                             }
 
                             VolumeModeScreen(
+                                uiState = uiState,
+                                actions = actions
+                            )
+                        }
+                        composable("flashlightIndicator") {
+                            val viewModel: FlashlightIndicatorViewModel = viewModel(
+                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
+                            )
+                            val uiState by viewModel.uiState.collectAsState()
+
+                            val actions = remember(viewModel, navController) {
+                                FlashlightIndicatorActions(
+                                    onToggleEnabled = { viewModel.toggleIndicatorEnabled(it) },
+                                    onToggleTapToDismiss = { viewModel.toggleTapToDismiss(it) },
+                                    onSetColor = { viewModel.setColor(it) },
+                                    onToggleFlashlight = { viewModel.toggleFlashlight() },
+                                    onEnableServiceWithShizuku = { viewModel.enableServiceWithShizuku() },
+                                    onOpenAccessibilitySettings = {
+                                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                                    },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            FlashlightIndicatorScreen(
                                 uiState = uiState,
                                 actions = actions
                             )

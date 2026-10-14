@@ -3,10 +3,12 @@ package com.t2e.toolbox.eqbirvin.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.t2e.toolbox.eqbirvin.data.DisplayFixRepository
+import com.t2e.toolbox.eqbirvin.data.FlashlightRepository
 import com.t2e.toolbox.eqbirvin.data.SettingsRepository
 import com.t2e.toolbox.eqbirvin.data.UnifiedPullDownRepository
 import com.t2e.toolbox.eqbirvin.data.VolumeModeRepository
 import com.t2e.toolbox.eqbirvin.ui.displayfix.DisplayFixViewModel
+import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorViewModel
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownViewModel
 import com.t2e.toolbox.eqbirvin.ui.volumemode.VolumeModeViewModel
 
@@ -14,7 +16,8 @@ class AppViewModelFactory(
     private val settingsRepo: SettingsRepository,
     private val displayRepo: DisplayFixRepository,
     private val pullDownRepo: UnifiedPullDownRepository,
-    private val volumeRepo: VolumeModeRepository
+    private val volumeRepo: VolumeModeRepository,
+    private val flashlightRepo: FlashlightRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DisplayFixViewModel::class.java)) {
@@ -28,6 +31,10 @@ class AppViewModelFactory(
         if (modelClass.isAssignableFrom(VolumeModeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return VolumeModeViewModel(settingsRepo, volumeRepo, displayRepo) as T
+        }
+        if (modelClass.isAssignableFrom(FlashlightIndicatorViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return FlashlightIndicatorViewModel(settingsRepo, flashlightRepo, pullDownRepo, displayRepo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

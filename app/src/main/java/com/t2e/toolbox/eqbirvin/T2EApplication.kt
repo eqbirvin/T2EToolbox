@@ -2,6 +2,7 @@ package com.t2e.toolbox.eqbirvin
 
 import android.app.Application
 import com.t2e.toolbox.eqbirvin.data.DisplayFixRepository
+import com.t2e.toolbox.eqbirvin.data.FlashlightRepository
 import com.t2e.toolbox.eqbirvin.data.SettingsRepository
 import com.t2e.toolbox.eqbirvin.data.UnifiedPullDownRepository
 import com.t2e.toolbox.eqbirvin.data.VolumeModeRepository
@@ -21,5 +22,9 @@ class T2EApplication : Application() {
 
     val volumeModeRepository: VolumeModeRepository by lazy {
         VolumeModeRepository(applicationContext, settingsRepository)
+    }
+
+    val flashlightRepository: FlashlightRepository by lazy {
+        FlashlightRepository(applicationContext, settingsRepository)
     }
 }

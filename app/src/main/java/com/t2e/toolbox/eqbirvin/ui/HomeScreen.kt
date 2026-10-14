@@ -12,7 +12,8 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     onNavigateToDisplayFix: () -> Unit,
     onNavigateToUnifiedPullDown: () -> Unit,
-    onNavigateToVolumeMode: () -> Unit
+    onNavigateToVolumeMode: () -> Unit,
+    onNavigateToFlashlightIndicator: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -59,6 +60,18 @@ fun HomeScreen(
                     Text("Volume Mode Switcher", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Side key shortcut to cycle between Sound, Vibrate, and Silent modes.")
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToFlashlightIndicator() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Flashlight Indicator", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Displays a clean horizontal icon in the center of the status bar when the flashlight is active.")
                 }
             }
         }

@@ -51,6 +51,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
     private var windowManager: WindowManager? = null
     private var overlayView: StatusbarOverlayView? = null
+    private var flashlightOverlayMgr: FlashlightOverlayManager? = null
     private var currentLayoutParams: WindowManager.LayoutParams? = null
     private var currentHeight: Int = 0
 
@@ -81,6 +82,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                     updateOverlayDimensions()
                     updateVisibility()
+                    flashlightOverlayMgr?.onConfigurationChanged()
                 }
             }
         }
@@ -92,7 +94,9 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         settingsRepo = app.settingsRepository
         pullDownRepo = app.unifiedPullDownRepository
         displayFixRepo = app.displayFixRepository
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        windowManager = wm
+        flashlightOverlayMgr = FlashlightOverlayManager(this, wm, app.flashlightRepository, settingsRepo)
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -160,6 +164,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                 }
             }
         }
+
+        flashlightOverlayMgr?.start(connectionScope)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -181,6 +187,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         updateOverlayDimensions()
+        flashlightOverlayMgr?.onConfigurationChanged()
     }
 
     private fun getStatusBarHeight(): Int {
@@ -412,6 +419,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         connectionJob = null
         pullDownRepo.setServiceConnected(false)
         detachOverlay()
+        flashlightOverlayMgr?.stop()
         return super.onUnbind(intent)
     }
 
@@ -429,6 +437,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         }
         detachOverlay()
         overlayView = null
+        flashlightOverlayMgr?.stop()
+        flashlightOverlayMgr = null
         serviceScope.cancel()
     }
 }
