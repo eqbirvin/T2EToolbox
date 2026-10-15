@@ -42,6 +42,8 @@
             android:enabled="false"
             android:excludeFromRecents="true"
             android:noHistory="true"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
             android:theme="@style/Theme.Transparent"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/volume_mode_app_name">

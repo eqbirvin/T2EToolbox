@@ -158,7 +158,7 @@ class VolumeModeRepository(
         val currentMode = RingerModeState.fromValue(am.ringerMode)
         val cycleOption = settingsRepo.volumeModeCycleOption.value
         val targetMode = calculateNextRingerMode(currentMode, cycleOption)
-        applyRingerMode(currentMode, targetMode, am)
+        applyRingerMode(currentMode, targetMode, am, isCycling = true)
     }
 
     suspend fun setRingerMode(targetMode: RingerModeState): RingerCycleResult = withContext(Dispatchers.IO) {
@@ -167,13 +167,14 @@ class VolumeModeRepository(
         if (currentMode == targetMode) {
             return@withContext RingerCycleResult.Success(currentMode, targetMode)
         }
-        applyRingerMode(currentMode, targetMode, am)
+        applyRingerMode(currentMode, targetMode, am, isCycling = false)
     }
 
     private suspend fun applyRingerMode(
         currentMode: RingerModeState,
         targetMode: RingerModeState,
-        am: AudioManager
+        am: AudioManager,
+        isCycling: Boolean = false
     ): RingerCycleResult {
         if (targetMode == RingerModeState.SILENT || currentMode == RingerModeState.SILENT) {
             var hasDnd = isNotificationPolicyAccessGranted()
@@ -182,6 +183,10 @@ class VolumeModeRepository(
                 hasDnd = isNotificationPolicyAccessGranted()
             }
             if (!hasDnd) {
+                if (isCycling && targetMode == RingerModeState.SILENT && currentMode != RingerModeState.SILENT) {
+                    Log.w(TAG, "DND access not granted for SILENT during cycle; falling back to NORMAL")
+                    return applyRingerMode(currentMode, RingerModeState.NORMAL, am, isCycling = false)
+                }
                 Log.w(TAG, "DND access not granted to change to/from SILENT")
                 return RingerCycleResult.PermissionRequired(targetMode)
             }

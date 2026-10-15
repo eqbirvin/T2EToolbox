@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-10-15
+### Fixed
+- Fixed Volume Mode Switcher pulling T2E Toolbox main app to foreground: added `android:taskAffinity=""`, `android:launchMode="singleInstance"`, and `finishAndRemoveTask()` to `VolumeModeActivity` so the headless shortcut operates in its own task and never surfaces `MainActivity`.
+- Added graceful permission fallback to Volume Mode cycling: when Do Not Disturb permission is not granted, attempting to cycle into Silent mode gracefully falls back to Sound mode instead of deadlocking the hardware shortcut in Vibrate mode.
+
 ## [0.5.0] - 2026-10-13
 ### Added
 - Added "Flashlight Indicator" feature:
