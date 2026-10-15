@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2] - 2026-10-15
+### Fixed
+- Fixed status bar icon visibility in T2E Toolbox app:
+  - Configured `windowLightStatusBar = true` and `windowLightNavigationBar = true` in `Theme.T2EToolbox`.
+  - Added programmatic insets controller enforcement (`WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true`) in `MainActivity`.
+  - Ensures status bar foreground elements (clock, battery level, cellular/Wi-Fi signal, and notification icons) render in dark/black for high contrast against the app's light background, even when system-wide dark mode is enabled on the device.
+
 ## [0.6.1] - 2026-10-15
 ### Fixed
 - Fixed "Silent (Mute only)" setting inadvertently triggering Do Not Disturb (DND):
