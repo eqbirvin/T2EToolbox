@@ -73,4 +73,24 @@ class VolumeModeRepositoryTest {
         // Unknown defaults to NORMAL
         assertEquals(RingerModeState.NORMAL, RingerModeState.fromValue(99))
     }
+
+    @Test
+    fun testSilentModeBehaviorProperties() {
+        assertEquals("Silent (Mute only)", SilentModeBehavior.MUTE.label)
+        assertEquals("Do Not Disturb (DND)", SilentModeBehavior.DND.label)
+        assertEquals(SilentModeBehavior.MUTE, SilentModeBehavior.valueOf("MUTE"))
+        assertEquals(SilentModeBehavior.DND, SilentModeBehavior.valueOf("DND"))
+    }
+
+    @Test
+    fun testRingerCycleResultDisplayLabel() {
+        val resultDefault = RingerCycleResult.Success(RingerModeState.NORMAL, RingerModeState.VIBRATE)
+        assertEquals("Vibrate", resultDefault.displayLabel)
+
+        val resultCustomDnd = RingerCycleResult.Success(RingerModeState.VIBRATE, RingerModeState.SILENT, "Do Not Disturb")
+        assertEquals("Do Not Disturb", resultCustomDnd.displayLabel)
+
+        val resultCustomMute = RingerCycleResult.Success(RingerModeState.VIBRATE, RingerModeState.SILENT, "Silent")
+        assertEquals("Silent", resultCustomMute.displayLabel)
+    }
 }

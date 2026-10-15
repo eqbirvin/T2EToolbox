@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - 2026-10-15
+### Added
+- Added "Silent Mode Behavior" setting to Volume Mode Switcher:
+  - Users can now explicitly choose what happens when cycling into the Silent state:
+    - **Silent (Mute only)**: Mutes calls, notifications, and vibrations while keeping Do Not Disturb OFF, ensuring visual notification banners, status bar icons, and lockscreen alerts display normally.
+    - **Do Not Disturb (DND)**: Activates system Do Not Disturb (`INTERRUPTION_FILTER_PRIORITY`), suppressing visual notifications according to device DND rules.
+  - Dynamically updates active status card (🔇 Silent vs ⛔ Do Not Disturb), cycle sequence labels, haptic vibration cues, and on-screen Toast alerts.
+  - Automatically synchronizes with system DND toggle changes via `ACTION_INTERRUPTION_FILTER_CHANGED`.
+  - Guarantees DND is disabled when switching back to Sound or Vibrate modes.
+
 ## [0.5.1] - 2026-10-15
 ### Fixed
 - Fixed Volume Mode Switcher pulling T2E Toolbox main app to foreground: added `android:taskAffinity=""`, `android:launchMode="singleInstance"`, and `finishAndRemoveTask()` to `VolumeModeActivity` so the headless shortcut operates in its own task and never surfaces `MainActivity`.

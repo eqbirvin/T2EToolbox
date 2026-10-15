@@ -7,6 +7,7 @@ import com.t2e.toolbox.eqbirvin.data.RingerCycleResult
 import com.t2e.toolbox.eqbirvin.data.RingerModeState
 import com.t2e.toolbox.eqbirvin.data.SettingsRepository
 import com.t2e.toolbox.eqbirvin.data.ShizukuStatus
+import com.t2e.toolbox.eqbirvin.data.SilentModeBehavior
 import com.t2e.toolbox.eqbirvin.data.VolumeCycleOption
 import com.t2e.toolbox.eqbirvin.data.VolumeModeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,15 @@ data class VolumeModeUiState(
     val isToastEnabled: Boolean = true,
     val isHapticEnabled: Boolean = true,
     val cycleOption: VolumeCycleOption = VolumeCycleOption.ALL_MODES,
+    val silentBehavior: SilentModeBehavior = SilentModeBehavior.MUTE,
     val lastActionMessage: String? = null
+)
+
+private data class VolumeSettingsGroup(
+    val toast: Boolean,
+    val haptic: Boolean,
+    val cycleOption: VolumeCycleOption,
+    val silentBehavior: SilentModeBehavior
 )
 
 class VolumeModeViewModel(
@@ -55,9 +64,10 @@ class VolumeModeViewModel(
     private val settingsFlow = combine(
         settingsRepo.isVolumeModeToastEnabled,
         settingsRepo.isVolumeModeHapticEnabled,
-        settingsRepo.volumeModeCycleOption
-    ) { toast, haptic, cycleOption ->
-        Triple(toast, haptic, cycleOption)
+        settingsRepo.volumeModeCycleOption,
+        settingsRepo.volumeModeSilentBehavior
+    ) { toast, haptic, cycleOption, silentBehavior ->
+        VolumeSettingsGroup(toast, haptic, cycleOption, silentBehavior)
     }
 
     val uiState: StateFlow<VolumeModeUiState> = combine(
@@ -65,9 +75,10 @@ class VolumeModeViewModel(
         settingsFlow
     ) { toggles, settings ->
         toggles.copy(
-            isToastEnabled = settings.first,
-            isHapticEnabled = settings.second,
-            cycleOption = settings.third
+            isToastEnabled = settings.toast,
+            isHapticEnabled = settings.haptic,
+            cycleOption = settings.cycleOption,
+            silentBehavior = settings.silentBehavior
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), VolumeModeUiState())
 
@@ -118,6 +129,12 @@ class VolumeModeViewModel(
         }
     }
 
+    fun setSilentModeBehavior(behavior: SilentModeBehavior) {
+        viewModelScope.launch {
+            settingsRepo.setVolumeModeSilentBehavior(behavior)
+        }
+    }
+
     fun cycleMode() {
         viewModelScope.launch {
             val result = volumeRepo.cycleRingerMode()
@@ -152,7 +169,7 @@ class VolumeModeViewModel(
                 if (settingsRepo.isVolumeModeHapticEnabled.value) {
                     volumeRepo.performHapticFeedback(result.newMode)
                 }
-                _lastActionMessage.value = "Switched to ${result.newMode.label}"
+                _lastActionMessage.value = "Switched to ${result.displayLabel}"
             }
             is RingerCycleResult.PermissionRequired -> {
                 _lastActionMessage.value = "Do Not Disturb permission required for ${result.targetMode.label}"

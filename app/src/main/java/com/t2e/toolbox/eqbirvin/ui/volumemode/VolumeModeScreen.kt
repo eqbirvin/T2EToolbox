@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.t2e.toolbox.eqbirvin.data.RingerModeState
+import com.t2e.toolbox.eqbirvin.data.SilentModeBehavior
 import com.t2e.toolbox.eqbirvin.data.VolumeCycleOption
 
 data class VolumeModeActions(
@@ -22,6 +23,7 @@ data class VolumeModeActions(
     val onToggleToast: (Boolean) -> Unit,
     val onToggleHaptic: (Boolean) -> Unit,
     val onSetCycleOption: (VolumeCycleOption) -> Unit,
+    val onSetSilentModeBehavior: (SilentModeBehavior) -> Unit,
     val onCycleMode: () -> Unit,
     val onSetSpecificMode: (RingerModeState) -> Unit,
     val onGrantDndViaShizuku: () -> Unit,
@@ -108,15 +110,21 @@ fun VolumeModeScreen(
                     ) {
                         Text("Active Sound Mode:")
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val (prefix, badgeColor) = when (uiState.currentRingerMode) {
-                                RingerModeState.NORMAL -> "🔊" to MaterialTheme.colorScheme.primary
-                                RingerModeState.VIBRATE -> "📳" to MaterialTheme.colorScheme.tertiary
-                                RingerModeState.SILENT -> "🔇" to MaterialTheme.colorScheme.error
+                            val (prefix, label, badgeColor) = when (uiState.currentRingerMode) {
+                                RingerModeState.NORMAL -> Triple("🔊", "Sound", MaterialTheme.colorScheme.primary)
+                                RingerModeState.VIBRATE -> Triple("📳", "Vibrate", MaterialTheme.colorScheme.tertiary)
+                                RingerModeState.SILENT -> {
+                                    if (uiState.silentBehavior == SilentModeBehavior.DND) {
+                                        Triple("⛔", "Do Not Disturb", MaterialTheme.colorScheme.error)
+                                    } else {
+                                        Triple("🔇", "Silent", MaterialTheme.colorScheme.error)
+                                    }
+                                }
                             }
                             Text(prefix, style = MaterialTheme.typography.titleMedium)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = uiState.currentRingerMode.label,
+                                text = label,
                                 style = MaterialTheme.typography.titleSmall,
                                 color = badgeColor
                             )
@@ -217,14 +225,64 @@ fun VolumeModeScreen(
 
                     HorizontalDivider()
 
+                    Text("Silent Mode Behavior", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Choose what happens when cycling into the Silent state.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = uiState.silentBehavior == SilentModeBehavior.MUTE,
+                                onClick = { actions.onSetSilentModeBehavior(SilentModeBehavior.MUTE) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("Silent (Mute only)", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    text = "Mutes calls, notifications, and vibration. Notifications still display normally on screen and in the status bar (DND is OFF).",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = uiState.silentBehavior == SilentModeBehavior.DND,
+                                onClick = { actions.onSetSilentModeBehavior(SilentModeBehavior.DND) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("Do Not Disturb (DND)", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    text = "Enables Android Do Not Disturb. Mutes audio and suppresses visual notifications according to your system DND rules.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+
                     Text("Cycle Sequence", style = MaterialTheme.typography.bodyMedium)
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val silentLabel = if (uiState.silentBehavior == SilentModeBehavior.DND) "DND" else "Silent"
                         val options = listOf(
-                            VolumeCycleOption.ALL_MODES to "Sound → Vibrate → Silent (Default)",
+                            VolumeCycleOption.ALL_MODES to "Sound → Vibrate → $silentLabel (Default)",
                             VolumeCycleOption.SOUND_AND_VIBRATE to "Sound ↔ Vibrate",
-                            VolumeCycleOption.SOUND_AND_SILENT to "Sound ↔ Silent",
-                            VolumeCycleOption.VIBRATE_AND_SILENT to "Vibrate ↔ Silent"
+                            VolumeCycleOption.SOUND_AND_SILENT to "Sound ↔ $silentLabel",
+                            VolumeCycleOption.VIBRATE_AND_SILENT to "Vibrate ↔ $silentLabel"
                         )
                         options.forEach { (option, label) ->
                             Row(

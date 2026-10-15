@@ -36,7 +36,11 @@ enum class RingerModeState(val value: Int, val label: String) {
 }
 
 sealed class RingerCycleResult {
-    data class Success(val oldMode: RingerModeState, val newMode: RingerModeState) : RingerCycleResult()
+    data class Success(
+        val oldMode: RingerModeState,
+        val newMode: RingerModeState,
+        val displayLabel: String = newMode.label
+    ) : RingerCycleResult()
     data class PermissionRequired(val targetMode: RingerModeState) : RingerCycleResult()
     data class Error(val message: String) : RingerCycleResult()
 }
@@ -74,22 +78,26 @@ class VolumeModeRepository(
     private val settingsRepo: SettingsRepository
 ) {
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
 
     private val _currentRingerMode = MutableStateFlow(readCurrentRingerMode())
     val currentRingerMode: StateFlow<RingerModeState> = _currentRingerMode.asStateFlow()
 
     private val ringerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == AudioManager.RINGER_MODE_CHANGED_ACTION) {
-                val newModeVal = intent.getIntExtra(AudioManager.EXTRA_RINGER_MODE, AudioManager.RINGER_MODE_NORMAL)
-                _currentRingerMode.value = RingerModeState.fromValue(newModeVal)
+            if (intent?.action == AudioManager.RINGER_MODE_CHANGED_ACTION ||
+                intent?.action == NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED) {
+                _currentRingerMode.value = readCurrentRingerMode()
             }
         }
     }
 
     init {
         try {
-            val filter = IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION)
+            val filter = IntentFilter().apply {
+                addAction(AudioManager.RINGER_MODE_CHANGED_ACTION)
+                addAction(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
+            }
             context.registerReceiver(ringerReceiver, filter)
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "Failed to register ringer receiver", e)
@@ -97,6 +105,10 @@ class VolumeModeRepository(
     }
 
     private fun readCurrentRingerMode(): RingerModeState {
+        val filter = notificationManager?.currentInterruptionFilter ?: NotificationManager.INTERRUPTION_FILTER_ALL
+        if (filter != NotificationManager.INTERRUPTION_FILTER_ALL && filter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN) {
+            return RingerModeState.SILENT
+        }
         val modeVal = audioManager?.ringerMode ?: AudioManager.RINGER_MODE_NORMAL
         return RingerModeState.fromValue(modeVal)
     }
@@ -108,8 +120,7 @@ class VolumeModeRepository(
     }
 
     suspend fun isNotificationPolicyAccessGranted(): Boolean = withContext(Dispatchers.IO) {
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-        nm?.isNotificationPolicyAccessGranted ?: false
+        notificationManager?.isNotificationPolicyAccessGranted ?: false
     }
 
     suspend fun grantNotificationPolicyAccessWithShizuku(): Boolean = withContext(Dispatchers.IO) {
@@ -176,6 +187,8 @@ class VolumeModeRepository(
         am: AudioManager,
         isCycling: Boolean = false
     ): RingerCycleResult {
+        val silentBehavior = settingsRepo.volumeModeSilentBehavior.value
+
         if (targetMode == RingerModeState.SILENT || currentMode == RingerModeState.SILENT) {
             var hasDnd = isNotificationPolicyAccessGranted()
             if (!hasDnd) {
@@ -193,9 +206,34 @@ class VolumeModeRepository(
         }
 
         return try {
-            am.ringerMode = targetMode.value
+            val displayLabel = when (targetMode) {
+                RingerModeState.SILENT -> {
+                    if (silentBehavior == SilentModeBehavior.DND) {
+                        notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+                        am.ringerMode = AudioManager.RINGER_MODE_SILENT
+                        "Do Not Disturb"
+                    } else {
+                        // Silent (Mute only): ensure DND is OFF so visual notifications appear normally
+                        notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                        am.ringerMode = AudioManager.RINGER_MODE_SILENT
+                        "Silent"
+                    }
+                }
+                RingerModeState.VIBRATE -> {
+                    // Turn DND off when returning to Vibrate
+                    notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                    am.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+                    "Vibrate"
+                }
+                RingerModeState.NORMAL -> {
+                    // Turn DND off when returning to Sound
+                    notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                    am.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                    "Sound"
+                }
+            }
             _currentRingerMode.value = targetMode
-            RingerCycleResult.Success(currentMode, targetMode)
+            RingerCycleResult.Success(currentMode, targetMode, displayLabel)
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException setting ringerMode to $targetMode", e)
             RingerCycleResult.PermissionRequired(targetMode)
@@ -231,11 +269,19 @@ class VolumeModeRepository(
                     vibrator.vibrate(effect)
                 }
                 RingerModeState.SILENT -> {
-                    // Light subtle double tick for silent mode
-                    val timings = longArrayOf(0, 40, 60, 40)
-                    val amplitudes = intArrayOf(0, 100, 0, 100)
-                    val effect = VibrationEffect.createWaveform(timings, amplitudes, -1)
-                    vibrator.vibrate(effect)
+                    if (settingsRepo.volumeModeSilentBehavior.value == SilentModeBehavior.DND) {
+                        // Distinct double-beat pulse for DND
+                        val timings = longArrayOf(0, 40, 50, 40, 50, 40)
+                        val amplitudes = intArrayOf(0, 140, 0, 140, 0, 140)
+                        val effect = VibrationEffect.createWaveform(timings, amplitudes, -1)
+                        vibrator.vibrate(effect)
+                    } else {
+                        // Light subtle double tick for silent mode
+                        val timings = longArrayOf(0, 40, 60, 40)
+                        val amplitudes = intArrayOf(0, 100, 0, 100)
+                        val effect = VibrationEffect.createWaveform(timings, amplitudes, -1)
+                        vibrator.vibrate(effect)
+                    }
                 }
             }
         } catch (e: SecurityException) {

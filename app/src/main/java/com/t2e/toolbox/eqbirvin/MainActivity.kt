@@ -115,6 +115,7 @@ class MainActivity : ComponentActivity() {
                                     onToggleToast = { viewModel.toggleToast(it) },
                                     onToggleHaptic = { viewModel.toggleHaptic(it) },
                                     onSetCycleOption = { viewModel.setCycleOption(it) },
+                                    onSetSilentModeBehavior = { viewModel.setSilentModeBehavior(it) },
                                     onCycleMode = { viewModel.cycleMode() },
                                     onSetSpecificMode = { viewModel.setSpecificMode(it) },
                                     onGrantDndViaShizuku = { viewModel.grantDndViaShizuku() },

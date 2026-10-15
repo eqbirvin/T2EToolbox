@@ -50,6 +50,12 @@ enum class VolumeCycleOption {
 }
 
 @Serializable
+enum class SilentModeBehavior(val label: String) {
+    MUTE("Silent (Mute only)"),
+    DND("Do Not Disturb (DND)")
+}
+
+@Serializable
 enum class FlashlightIndicatorColor(val colorArgb: Long, val label: String) {
     AMBER(0xFFFFB300, "Amber Glow"),
     YELLOW(0xFFFFEB3B, "Bright Yellow"),
@@ -158,6 +164,18 @@ class SettingsRepository(context: Context) {
     )
     val volumeModeCycleOption: StateFlow<VolumeCycleOption> = _volumeModeCycleOption.asStateFlow()
 
+    private val _volumeModeSilentBehavior = MutableStateFlow(
+        prefs.getString("volume_mode_silent_behavior", null)?.let {
+            try {
+                SilentModeBehavior.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Illegal argument while decoding volume_mode_silent_behavior", e)
+                SilentModeBehavior.MUTE
+            }
+        } ?: SilentModeBehavior.MUTE
+    )
+    val volumeModeSilentBehavior: StateFlow<SilentModeBehavior> = _volumeModeSilentBehavior.asStateFlow()
+
     // Flashlight Status Bar Indicator
     private val _isFlashlightIndicatorEnabled = MutableStateFlow(prefs.getBoolean("flashlight_indicator_enabled", true))
     val isFlashlightIndicatorEnabled: StateFlow<Boolean> = _isFlashlightIndicatorEnabled.asStateFlow()
@@ -253,6 +271,11 @@ class SettingsRepository(context: Context) {
     suspend fun setVolumeModeCycleOption(option: VolumeCycleOption) = withContext(Dispatchers.IO) {
         prefs.edit().putString("volume_mode_cycle_option", option.name).apply()
         _volumeModeCycleOption.value = option
+    }
+
+    suspend fun setVolumeModeSilentBehavior(behavior: SilentModeBehavior) = withContext(Dispatchers.IO) {
+        prefs.edit().putString("volume_mode_silent_behavior", behavior.name).apply()
+        _volumeModeSilentBehavior.value = behavior
     }
 
     suspend fun setFlashlightIndicatorEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {

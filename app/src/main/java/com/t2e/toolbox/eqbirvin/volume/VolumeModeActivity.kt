@@ -33,7 +33,7 @@ class VolumeModeActivity : ComponentActivity() {
                         if (showToast) {
                             Toast.makeText(
                                 applicationContext,
-                                "Sound Mode: ${result.newMode.label}",
+                                "Sound Mode: ${result.displayLabel}",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
