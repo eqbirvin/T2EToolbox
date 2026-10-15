@@ -104,7 +104,7 @@ class VolumeModeRepository(
         }
     }
 
-    private fun readCurrentRingerMode(): RingerModeState {
+    fun readCurrentRingerMode(): RingerModeState {
         val filter = notificationManager?.currentInterruptionFilter ?: NotificationManager.INTERRUPTION_FILTER_ALL
         if (filter != NotificationManager.INTERRUPTION_FILTER_ALL && filter != NotificationManager.INTERRUPTION_FILTER_UNKNOWN) {
             return RingerModeState.SILENT
@@ -166,7 +166,7 @@ class VolumeModeRepository(
 
     suspend fun cycleRingerMode(): RingerCycleResult = withContext(Dispatchers.IO) {
         val am = audioManager ?: return@withContext RingerCycleResult.Error("AudioManager unavailable")
-        val currentMode = RingerModeState.fromValue(am.ringerMode)
+        val currentMode = readCurrentRingerMode()
         val cycleOption = settingsRepo.volumeModeCycleOption.value
         val targetMode = calculateNextRingerMode(currentMode, cycleOption)
         applyRingerMode(currentMode, targetMode, am, isCycling = true)
@@ -174,7 +174,7 @@ class VolumeModeRepository(
 
     suspend fun setRingerMode(targetMode: RingerModeState): RingerCycleResult = withContext(Dispatchers.IO) {
         val am = audioManager ?: return@withContext RingerCycleResult.Error("AudioManager unavailable")
-        val currentMode = RingerModeState.fromValue(am.ringerMode)
+        val currentMode = readCurrentRingerMode()
         if (currentMode == targetMode) {
             return@withContext RingerCycleResult.Success(currentMode, targetMode)
         }
@@ -189,6 +189,35 @@ class VolumeModeRepository(
     ): RingerCycleResult {
         val silentBehavior = settingsRepo.volumeModeSilentBehavior.value
 
+        // Privileged path via Shizuku: directly invokes AudioService's internal ringer control,
+        // avoiding AOSP's automatic ZenMode (DND) override when switching to SILENT.
+        if (ShizukuShell.isReady()) {
+            val (shellCmd, displayLabel) = when (targetMode) {
+                RingerModeState.SILENT -> {
+                    if (silentBehavior == SilentModeBehavior.DND) {
+                        "cmd audio set-ringer-mode SILENT && cmd notification set_dnd priority" to "Do Not Disturb"
+                    } else {
+                        "cmd audio set-ringer-mode SILENT && cmd notification set_dnd off" to "Silent"
+                    }
+                }
+                RingerModeState.VIBRATE -> {
+                    "cmd audio set-ringer-mode VIBRATE && cmd notification set_dnd off" to "Vibrate"
+                }
+                RingerModeState.NORMAL -> {
+                    "cmd audio set-ringer-mode NORMAL && cmd notification set_dnd off" to "Sound"
+                }
+            }
+
+            val shellResult = ShizukuShell.runShell(shellCmd)
+            if (shellResult.exitCode == 0) {
+                _currentRingerMode.value = targetMode
+                return RingerCycleResult.Success(currentMode, targetMode, displayLabel)
+            } else {
+                Log.w(TAG, "Shizuku set ringer command failed: ${shellResult.stderr}, falling back to standard API")
+            }
+        }
+
+        // Standard API path: requires ACCESS_NOTIFICATION_POLICY for SILENT transitions
         if (targetMode == RingerModeState.SILENT || currentMode == RingerModeState.SILENT) {
             var hasDnd = isNotificationPolicyAccessGranted()
             if (!hasDnd) {
@@ -213,22 +242,26 @@ class VolumeModeRepository(
                         am.ringerMode = AudioManager.RINGER_MODE_SILENT
                         "Do Not Disturb"
                     } else {
-                        // Silent (Mute only): ensure DND is OFF so visual notifications appear normally
-                        notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                        // Silent (Mute only): set ringer to SILENT, then ensure DND filter is cleared to ALL
                         am.ringerMode = AudioManager.RINGER_MODE_SILENT
+                        notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                        if (am.ringerMode != AudioManager.RINGER_MODE_SILENT) {
+                            am.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0)
+                            am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0)
+                        }
                         "Silent"
                     }
                 }
                 RingerModeState.VIBRATE -> {
-                    // Turn DND off when returning to Vibrate
                     notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                     am.ringerMode = AudioManager.RINGER_MODE_VIBRATE
                     "Vibrate"
                 }
                 RingerModeState.NORMAL -> {
-                    // Turn DND off when returning to Sound
                     notificationManager?.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                     am.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                    am.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_UNMUTE, 0)
+                    am.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0)
                     "Sound"
                 }
             }

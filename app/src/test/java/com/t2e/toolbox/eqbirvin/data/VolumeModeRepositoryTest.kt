@@ -93,4 +93,11 @@ class VolumeModeRepositoryTest {
         val resultCustomMute = RingerCycleResult.Success(RingerModeState.VIBRATE, RingerModeState.SILENT, "Silent")
         assertEquals("Silent", resultCustomMute.displayLabel)
     }
+
+    @Test
+    fun testShizukuShellQuote() {
+        assertEquals("'hello'", ShizukuShell.shellQuote("hello"))
+        assertEquals("'don'\\''t'", ShizukuShell.shellQuote("don't"))
+        assertEquals("'foo bar'", ShizukuShell.shellQuote("foo bar"))
+    }
 }

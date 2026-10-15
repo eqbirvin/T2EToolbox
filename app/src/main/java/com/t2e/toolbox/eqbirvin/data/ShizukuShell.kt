@@ -1,5 +1,6 @@
 package com.t2e.toolbox.eqbirvin.data
 
+import android.content.pm.PackageManager
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,6 +15,16 @@ private const val TAG = "ShizukuShell"
 object ShizukuShell {
     fun shellQuote(value: String): String {
         return "'" + value.replace("'", "'\\''") + "'"
+    }
+
+    fun isReady(): Boolean {
+        return try {
+            Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        } catch (e: IllegalStateException) {
+            false
+        } catch (e: SecurityException) {
+            false
+        }
     }
 
     suspend fun runShell(command: String): ShellResult = withContext(Dispatchers.IO) {

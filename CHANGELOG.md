@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.1] - 2026-10-15
+### Fixed
+- Fixed "Silent (Mute only)" setting inadvertently triggering Do Not Disturb (DND):
+  - Solved AOSP audio architecture limitation where public `AudioManager.setRingerMode(RINGER_MODE_SILENT)` forces Zen Mode (`ZEN_MODE_IMPORTANT_INTERRUPTIONS`).
+  - Added privileged Shizuku-backed ringer control using internal audio service commands (`cmd audio set-ringer-mode SILENT && cmd notification set_dnd off`), keeping DND completely disabled while muting ring, notification, system, and DTMF streams to volume 0 with vibration off.
+  - Ensured visual heads-up notifications, lockscreen banners, and status bar icons continue to appear normally without suppression.
+  - Updated ringer state evaluation in cycling logic to use unified `readCurrentRingerMode()`, preventing out-of-sync cycle steps.
+  - Added fallback volume stream muting and unmuting for environments where Shizuku is not running.
+
 ## [0.6.0] - 2026-10-15
 ### Added
 - Added "Silent Mode Behavior" setting to Volume Mode Switcher:

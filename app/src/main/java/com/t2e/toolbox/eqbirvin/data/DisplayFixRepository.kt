@@ -127,14 +127,7 @@ class DisplayFixRepository(
         _shizukuStatus.value = status
     }
 
-    fun isShizukuReady(): Boolean {
-        return try {
-            Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-        } catch (e: IllegalStateException) {
-            Log.e(TAG, "isShizukuReady failed with IllegalStateException", e)
-            false
-        }
-    }
+    fun isShizukuReady(): Boolean = ShizukuShell.isReady()
 
     suspend fun requestShizukuPermission(requestCode: Int = 0) = withContext(Dispatchers.IO) {
         try {
