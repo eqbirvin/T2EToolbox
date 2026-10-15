@@ -1,21 +1,54 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-app/build/
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
 
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+app/build/
+/build/
+
+# Gradle files
+.gradle/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Proguard / R8 mapping files
+proguard/
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+.idea_modules/
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# VS Code
+.vscode/
+
+# macOS / OS files
+.DS_Store
+Thumbs.db
+
+# Releases & local binaries
+releases/
 jdk17/
 temp_shizuku/
-releases/
 
+# Internal project & agent files (not needed for cloning and building)
+.agents/
+history.log
+specs/
