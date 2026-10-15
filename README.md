@@ -34,9 +34,14 @@ A specialized companion utility for the **Unihertz Titan 2 Elite** (Android 15 /
 - **Zero-Friction Pass-Through:** Full pass-through for taps and horizontal gestures to underlying status bar elements.
 
 ### 4. Display Fix
-- **Aspect Ratio & Density Tuning:** Applies calibrated display resolution (`wm size`) and density (`wm density`) overrides via Shizuku to optimize app scaling and layout on the Titan 2 Elite's unique physical form factor.
-- **Snapshot & Restore:** Captures prior system settings before modification and provides 1-tap restoration.
-- **Automatic Boot Persistence:** Re-applies display configuration on system boot via WorkManager.
+- **Aspect Ratio & Density Tuning:** Calibrated screen resolution/density scaling via Shizuku with 1-tap backup and restore. Designed to change screen rendering from 1080p to ~800p to save battery while maintaining proportional scaling.
+- **Snapshot & Restore:** Captures a snapshot of your original display state before modifying anything, allowing you to return to stock sizing with one tap.
+- **Automatic Boot Persistence:** When modifying `wm size` and rebooting, Android resets values back to stock; T2E Toolbox automatically re-applies your preferred sizing after reboot via WorkManager.
+
+> [!WARNING]
+> **Experimental Feature — Use With Caution:**
+> - **ADB Rescue Preparedness:** This is the least-tested feature in the toolbox. It should be used with caution, and only by users who are comfortable with ADB and already have ADB debugging configured on their PC to reset values (`adb shell wm size reset && adb shell wm density reset`) if scaling issues arise. Unihertz system packages can behave unpredictably when modifying `wm size`.
+> - **Lockscreen / Pedometer Conflict:** If you have the built-in Unihertz pedometer app disabled or uninstalled, changing display density wreaks havoc on the lockscreen and System UI.
 
 ---
 
