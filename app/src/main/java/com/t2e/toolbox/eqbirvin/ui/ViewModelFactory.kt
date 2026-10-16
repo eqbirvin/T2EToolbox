@@ -1,23 +1,28 @@
 package com.t2e.toolbox.eqbirvin.ui
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.t2e.toolbox.eqbirvin.data.DisplayFixRepository
 import com.t2e.toolbox.eqbirvin.data.FlashlightRepository
+import com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository
 import com.t2e.toolbox.eqbirvin.data.SettingsRepository
 import com.t2e.toolbox.eqbirvin.data.UnifiedPullDownRepository
 import com.t2e.toolbox.eqbirvin.data.VolumeModeRepository
 import com.t2e.toolbox.eqbirvin.ui.displayfix.DisplayFixViewModel
 import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorViewModel
+import com.t2e.toolbox.eqbirvin.ui.perappdpi.PerAppDpiViewModel
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownViewModel
 import com.t2e.toolbox.eqbirvin.ui.volumemode.VolumeModeViewModel
 
 class AppViewModelFactory(
+    private val context: Context,
     private val settingsRepo: SettingsRepository,
     private val displayRepo: DisplayFixRepository,
     private val pullDownRepo: UnifiedPullDownRepository,
     private val volumeRepo: VolumeModeRepository,
-    private val flashlightRepo: FlashlightRepository
+    private val flashlightRepo: FlashlightRepository,
+    private val perAppDpiRepo: PerAppDpiRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DisplayFixViewModel::class.java)) {
@@ -35,6 +40,10 @@ class AppViewModelFactory(
         if (modelClass.isAssignableFrom(FlashlightIndicatorViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return FlashlightIndicatorViewModel(settingsRepo, flashlightRepo, pullDownRepo, displayRepo) as T
+        }
+        if (modelClass.isAssignableFrom(PerAppDpiViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return PerAppDpiViewModel(context, settingsRepo, perAppDpiRepo, displayRepo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

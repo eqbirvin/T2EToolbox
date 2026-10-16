@@ -195,6 +195,30 @@ class SettingsRepository(context: Context) {
     )
     val flashlightIndicatorColor: StateFlow<FlashlightIndicatorColor> = _flashlightIndicatorColor.asStateFlow()
 
+    // Per-App DPI Scaling
+    private val _isPerAppDpiEnabled = MutableStateFlow(prefs.getBoolean("per_app_dpi_enabled", false))
+    val isPerAppDpiEnabled: StateFlow<Boolean> = _isPerAppDpiEnabled.asStateFlow()
+
+    private val _perAppDpiRules = MutableStateFlow<Map<String, PerAppDpiRule>>(
+        prefs.getString("per_app_dpi_rules", null)?.let {
+            try {
+                Json.decodeFromString<Map<String, PerAppDpiRule>>(it)
+            } catch (e: SerializationException) {
+                Log.e(TAG, "Failed to decode per_app_dpi_rules JSON", e)
+                emptyMap()
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Illegal argument while decoding per_app_dpi_rules JSON", e)
+                emptyMap()
+            }
+        } ?: emptyMap()
+    )
+    val perAppDpiRules: StateFlow<Map<String, PerAppDpiRule>> = _perAppDpiRules.asStateFlow()
+
+    private val _perAppDpiBaseDpi = MutableStateFlow<Int?>(
+        if (prefs.contains("per_app_dpi_base_dpi")) prefs.getInt("per_app_dpi_base_dpi", 300) else null
+    )
+    val perAppDpiBaseDpi: StateFlow<Int?> = _perAppDpiBaseDpi.asStateFlow()
+
     suspend fun setDisplayFixEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("display_fix_enabled", enabled).apply()
         _isDisplayFixEnabled.value = enabled
@@ -291,5 +315,24 @@ class SettingsRepository(context: Context) {
     suspend fun setFlashlightIndicatorColor(color: FlashlightIndicatorColor) = withContext(Dispatchers.IO) {
         prefs.edit().putString("flashlight_indicator_color", color.name).apply()
         _flashlightIndicatorColor.value = color
+    }
+
+    suspend fun setPerAppDpiEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("per_app_dpi_enabled", enabled).apply()
+        _isPerAppDpiEnabled.value = enabled
+    }
+
+    suspend fun savePerAppDpiRules(rules: Map<String, PerAppDpiRule>) = withContext(Dispatchers.IO) {
+        prefs.edit().putString("per_app_dpi_rules", Json.encodeToString(rules)).apply()
+        _perAppDpiRules.value = rules
+    }
+
+    suspend fun setPerAppDpiBaseDpi(baseDpi: Int?) = withContext(Dispatchers.IO) {
+        if (baseDpi == null) {
+            prefs.edit().remove("per_app_dpi_base_dpi").apply()
+        } else {
+            prefs.edit().putInt("per_app_dpi_base_dpi", baseDpi).apply()
+        }
+        _perAppDpiBaseDpi.value = baseDpi
     }
 }

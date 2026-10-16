@@ -24,6 +24,9 @@ import com.t2e.toolbox.eqbirvin.ui.displayfix.DisplayFixViewModel
 import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorActions
 import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorScreen
 import com.t2e.toolbox.eqbirvin.ui.flashlight.FlashlightIndicatorViewModel
+import com.t2e.toolbox.eqbirvin.ui.perappdpi.PerAppDpiActions
+import com.t2e.toolbox.eqbirvin.ui.perappdpi.PerAppDpiScreen
+import com.t2e.toolbox.eqbirvin.ui.perappdpi.PerAppDpiViewModel
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownActions
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownScreen
 import com.t2e.toolbox.eqbirvin.ui.unifiedpulldown.UnifiedPullDownViewModel
@@ -45,6 +48,17 @@ class MainActivity : ComponentActivity() {
         val pullDownRepo = app.unifiedPullDownRepository
         val volumeRepo = app.volumeModeRepository
         val flashlightRepo = app.flashlightRepository
+        val perAppDpiRepo = app.perAppDpiRepository
+
+        val viewModelFactory = AppViewModelFactory(
+            context = this,
+            settingsRepo = settingsRepo,
+            displayRepo = displayRepo,
+            pullDownRepo = pullDownRepo,
+            volumeRepo = volumeRepo,
+            flashlightRepo = flashlightRepo,
+            perAppDpiRepo = perAppDpiRepo
+        )
 
         setContent {
             MaterialTheme {
@@ -59,13 +73,37 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDisplayFix = { navController.navigate("displayFix") },
                                 onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") },
                                 onNavigateToVolumeMode = { navController.navigate("volumeMode") },
-                                onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") }
+                                onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") },
+                                onNavigateToPerAppDpi = { navController.navigate("perAppDpi") }
+                            )
+                        }
+                        composable("perAppDpi") {
+                            val viewModel: PerAppDpiViewModel = viewModel(factory = viewModelFactory)
+                            val uiState by viewModel.uiState.collectAsState()
+
+                            val actions = remember(viewModel, navController) {
+                                PerAppDpiActions(
+                                    onToggleEnabled = { viewModel.toggleEnabled(it) },
+                                    onSetBaseDpi = { viewModel.setUserBaseDpi(it) },
+                                    onSaveRule = { viewModel.saveRule(it) },
+                                    onDeleteRule = { viewModel.deleteRule(it) },
+                                    onOpenAppPicker = { viewModel.openAppPicker() },
+                                    onCloseAppPicker = { viewModel.closeAppPicker() },
+                                    onOpenRuleEditor = { viewModel.openRuleEditor(it) },
+                                    onCloseRuleEditor = { viewModel.closeRuleEditor() },
+                                    onRequestPermission = { viewModel.onRequestPermission() },
+                                    onRefresh = { viewModel.refreshState() },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            PerAppDpiScreen(
+                                uiState = uiState,
+                                actions = actions
                             )
                         }
                         composable("displayFix") {
-                            val viewModel: DisplayFixViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
-                            )
+                            val viewModel: DisplayFixViewModel = viewModel(factory = viewModelFactory)
                             val uiState by viewModel.uiState.collectAsState()
 
                             DisplayFixScreen(
@@ -78,9 +116,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("unifiedPullDown") {
-                            val viewModel: UnifiedPullDownViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
-                            )
+                            val viewModel: UnifiedPullDownViewModel = viewModel(factory = viewModelFactory)
                             val uiState by viewModel.uiState.collectAsState()
 
                             val actions = remember(viewModel, navController) {
@@ -109,9 +145,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("volumeMode") {
-                            val viewModel: VolumeModeViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
-                            )
+                            val viewModel: VolumeModeViewModel = viewModel(factory = viewModelFactory)
                             val uiState by viewModel.uiState.collectAsState()
 
                             val actions = remember(viewModel, navController) {
@@ -138,9 +172,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("flashlightIndicator") {
-                            val viewModel: FlashlightIndicatorViewModel = viewModel(
-                                factory = AppViewModelFactory(settingsRepo, displayRepo, pullDownRepo, volumeRepo, flashlightRepo)
-                            )
+                            val viewModel: FlashlightIndicatorViewModel = viewModel(factory = viewModelFactory)
                             val uiState by viewModel.uiState.collectAsState()
 
                             val actions = remember(viewModel, navController) {

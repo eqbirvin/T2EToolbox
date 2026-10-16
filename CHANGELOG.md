@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0] - 2026-10-15
+### Added
+- Added "Per-App Scaling (DPI)" feature for Unihertz Titan 2 Elite:
+  - Dynamically overrides screen density (DPI / smallest width $sw$) on a per-app basis via Shizuku window manager commands.
+  - Solves vertical squishing and content cutoff issues on Titan 2 Elite's unique nearly square display ($1080 \times 1200$, physical $\approx 576\text{ dp}$ phone layout) by triggering Android's native tablet layout ($\ge 600\text{ dp}$) for apps like Instagram, Spotify, and Slack.
+  - **Intelligent Layout Range Legend**: Dynamically computes and displays layout ranges for the active screen resolution (Stock 1080px, Calibrated 1076px, or 864px Display Fix):
+    - **Phone Layout**: $< 600\text{ dp}$ ($\ge 289\text{ DPI}$ at stock 1080px)
+    - **Tablet Layout (Recommended)**: $600\text{--}719\text{ dp}$ ($241\text{--}288\text{ DPI}$ at stock 1080px)
+    - **Desktop Layout**: $\ge 720\text{ dp}$ ($\le 240\text{ DPI}$ at stock 1080px)
+  - **Custom Scaling Modes**: Presets for Tablet ($600\text{ dp}$), Desktop ($720\text{ dp}$), Custom Smallest Width (dp), and Custom Density (DPI) with real-time in-dialog calculation previews.
+  - **Automatic Base Density Restoration**: Intelligently captures base density configured in Settings, Developer Options, or ADB, and restores it immediately upon entering Home launcher, Recents screen, or switching to untargeted apps.
+  - **Debounced Window Tracking**: Low $180\text{ ms}$ settle debounce provides rapid, responsive switching without animation jitter during fast app switching.
+  - **Lockscreen & Pedometer Safety**: Reverts to base density immediately upon screen-off (`ACTION_SCREEN_OFF`) to prevent Unihertz lockscreen distortion.
+  - **Searchable App Picker**: Filter through all installed launcher applications with app icons and labels.
+  - Hosted directly within the existing `UnifiedPullDownAccessibilityService` for window state observation without additional background services.
+
 ## [0.6.2] - 2026-10-15
 ### Fixed
 - Fixed status bar icon visibility in T2E Toolbox app:

@@ -48,6 +48,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private lateinit var settingsRepo: SettingsRepository
     private lateinit var pullDownRepo: UnifiedPullDownRepository
     private lateinit var displayFixRepo: DisplayFixRepository
+    private lateinit var perAppDpiRepo: com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository
 
     private var windowManager: WindowManager? = null
     private var overlayView: StatusbarOverlayView? = null
@@ -94,6 +95,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         settingsRepo = app.settingsRepository
         pullDownRepo = app.unifiedPullDownRepository
         displayFixRepo = app.displayFixRepository
+        perAppDpiRepo = app.perAppDpiRepository
         val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager = wm
         flashlightOverlayMgr = FlashlightOverlayManager(this, wm, app.flashlightRepository, settingsRepo)
@@ -177,7 +179,19 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                     stateMachine.reset()
                 }
             }
+
+            val className = event.className?.toString() ?: ""
+            handlePerAppDpiWindowState(pkg, className)
         }
+    }
+
+    private fun handlePerAppDpiWindowState(pkg: String, className: String) {
+        if (pkg.isEmpty()) return
+        if (className.startsWith("android.widget.") || className.startsWith("android.view.")) {
+            return
+        }
+        val isHomeOrRecents = perAppDpiRepo.isHomeOrRecentsPackage(pkg)
+        perAppDpiRepo.onPackageForeground(pkg, isHomeOrRecents)
     }
 
     override fun onInterrupt() {
@@ -188,6 +202,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         super.onConfigurationChanged(newConfig)
         updateOverlayDimensions()
         flashlightOverlayMgr?.onConfigurationChanged()
+        perAppDpiRepo.notifyConfigurationChanged(newConfig.densityDpi)
     }
 
     private fun getStatusBarHeight(): Int {

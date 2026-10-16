@@ -27,4 +27,8 @@ class T2EApplication : Application() {
     val flashlightRepository: FlashlightRepository by lazy {
         FlashlightRepository(applicationContext, settingsRepository)
     }
+
+    val perAppDpiRepository: com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository by lazy {
+        com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository(applicationContext, settingsRepository)
+    }
 }

@@ -2,6 +2,8 @@ package com.t2e.toolbox.eqbirvin.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,7 +15,8 @@ fun HomeScreen(
     onNavigateToDisplayFix: () -> Unit,
     onNavigateToUnifiedPullDown: () -> Unit,
     onNavigateToVolumeMode: () -> Unit,
-    onNavigateToFlashlightIndicator: () -> Unit
+    onNavigateToFlashlightIndicator: () -> Unit,
+    onNavigateToPerAppDpi: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -24,9 +27,22 @@ fun HomeScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToPerAppDpi() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Per-App Scaling (DPI)", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Force tablet or desktop layouts for specific apps (e.g. Instagram) to eliminate content cutoff.")
+                }
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
