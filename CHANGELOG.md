@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.1] - 2026-10-15
+### Fixed
+- Fixed app picker only displaying ~5 apps in Per-App Scaling:
+  - Added `android.permission.QUERY_ALL_PACKAGES` permission and explicit `<intent>` filters (`CATEGORY_LAUNCHER` and `CATEGORY_HOME`) to `AndroidManifest.xml` to bypass Android 11+ Package Visibility filtering.
+  - Enhanced installed app resolution to query with `PackageManager.MATCH_ALL` and fall back to `getInstalledApplications` with `getLaunchIntentForPackage`, ensuring all user-installed and system launcher apps appear in the searchable app picker.
+
 ## [0.7.0] - 2026-10-15
 ### Added
 - Added "Per-App Scaling (DPI)" feature for Unihertz Titan 2 Elite:

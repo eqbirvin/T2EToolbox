@@ -161,9 +161,16 @@ class PerAppDpiViewModel(
             val apps = withContext(Dispatchers.IO) {
                 val pm = context.packageManager
                 val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-                val resolveInfos = pm.queryIntentActivities(intent, 0)
-                resolveInfos.mapNotNull { ri ->
+                val resolveInfos = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()))
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+                }
+
+                val launcherApps = resolveInfos.mapNotNull { ri ->
                     val pkg = ri.activityInfo?.packageName ?: return@mapNotNull null
+                    if (pkg == context.packageName) return@mapNotNull null
                     val label = ri.loadLabel(pm).toString()
                     val icon = try {
                         ri.loadIcon(pm)
@@ -171,7 +178,38 @@ class PerAppDpiViewModel(
                         null
                     }
                     AppInfoItem(packageName = pkg, label = label, icon = icon)
-                }.distinctBy { it.packageName }.sortedBy { it.label.lowercase() }
+                }
+
+                val installedPackages = try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0L))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        pm.getInstalledApplications(0)
+                    }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val allLaunchable = installedPackages.mapNotNull { appInfo ->
+                    val pkg = appInfo.packageName
+                    if (pkg == context.packageName) return@mapNotNull null
+                    if (pm.getLaunchIntentForPackage(pkg) != null) {
+                        val label = pm.getApplicationLabel(appInfo).toString()
+                        val icon = try {
+                            pm.getApplicationIcon(appInfo)
+                        } catch (e: Exception) {
+                            null
+                        }
+                        AppInfoItem(packageName = pkg, label = label, icon = icon)
+                    } else {
+                        null
+                    }
+                }
+
+                (launcherApps + allLaunchable)
+                    .distinctBy { it.packageName }
+                    .sortedBy { it.label.lowercase() }
             }
             _installedApps.value = apps
             _isLoadingApps.value = false
