@@ -29,7 +29,9 @@ enum class ShizukuStatus {
     READY
 }
 
-data class ShellResult(val exitCode: Int, val stdout: String, val stderr: String)
+data class ShellResult(val exitCode: Int, val stdout: String, val stderr: String) {
+    val isSuccess: Boolean get() = exitCode == 0
+}
 data class CurrentDisplayState(val size: String, val density: String)
 
 class DisplayFixRepository(

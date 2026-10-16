@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
         val volumeRepo = app.volumeModeRepository
         val flashlightRepo = app.flashlightRepository
         val perAppDpiRepo = app.perAppDpiRepository
+        val keyboardBacklightRepo = app.keyboardBacklightRepository
 
         val viewModelFactory = AppViewModelFactory(
             context = this,
@@ -57,7 +58,8 @@ class MainActivity : ComponentActivity() {
             pullDownRepo = pullDownRepo,
             volumeRepo = volumeRepo,
             flashlightRepo = flashlightRepo,
-            perAppDpiRepo = perAppDpiRepo
+            perAppDpiRepo = perAppDpiRepo,
+            keyboardBacklightRepo = keyboardBacklightRepo
         )
 
         setContent {
@@ -74,7 +76,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") },
                                 onNavigateToVolumeMode = { navController.navigate("volumeMode") },
                                 onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") },
-                                onNavigateToPerAppDpi = { navController.navigate("perAppDpi") }
+                                onNavigateToPerAppDpi = { navController.navigate("perAppDpi") },
+                                onNavigateToKeyboardBacklight = { navController.navigate("keyboardBacklight") }
                             )
                         }
                         composable("perAppDpi") {
@@ -190,6 +193,30 @@ class MainActivity : ComponentActivity() {
                             }
 
                             FlashlightIndicatorScreen(
+                                uiState = uiState,
+                                actions = actions
+                            )
+                        }
+                        composable("keyboardBacklight") {
+                            val viewModel: com.t2e.toolbox.eqbirvin.ui.keyboardbacklight.KeyboardBacklightViewModel =
+                                viewModel(factory = viewModelFactory)
+                            val uiState by viewModel.uiState.collectAsState()
+
+                            val actions = remember(viewModel, navController) {
+                                com.t2e.toolbox.eqbirvin.ui.keyboardbacklight.KeyboardBacklightActions(
+                                    onToggleCustomEnabled = { viewModel.toggleCustomEnabled(it) },
+                                    onSetTimeoutSeconds = { viewModel.setTimeoutSeconds(it) },
+                                    onToggleKeepOnWithScreen = { viewModel.toggleKeepOnWithScreen(it) },
+                                    onSetBrightness = { viewModel.setBrightness(it) },
+                                    onApplyNow = { viewModel.applyCurrentSettings() },
+                                    onRefresh = { viewModel.refreshLiveDeviceState() },
+                                    onRequestPermission = { viewModel.requestShizukuPermission() },
+                                    onClearStatusMessage = { viewModel.clearStatusMessage() },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            com.t2e.toolbox.eqbirvin.ui.keyboardbacklight.KeyboardBacklightScreen(
                                 uiState = uiState,
                                 actions = actions
                             )

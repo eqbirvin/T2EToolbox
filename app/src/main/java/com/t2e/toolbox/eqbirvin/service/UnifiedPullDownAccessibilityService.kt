@@ -79,11 +79,13 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                     serviceScope.launch(swipeDispatcher) {
                         stateMachine.reset()
                     }
+                    (application as? T2EApplication)?.keyboardBacklightRepository?.onScreenOff()
                 }
                 Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                     updateOverlayDimensions()
                     updateVisibility()
                     flashlightOverlayMgr?.onConfigurationChanged()
+                    (application as? T2EApplication)?.keyboardBacklightRepository?.onScreenOn()
                 }
             }
         }

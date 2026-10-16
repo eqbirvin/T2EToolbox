@@ -219,6 +219,19 @@ class SettingsRepository(context: Context) {
     )
     val perAppDpiBaseDpi: StateFlow<Int?> = _perAppDpiBaseDpi.asStateFlow()
 
+    // Keyboard Backlight
+    private val _isKeyboardBacklightCustomEnabled = MutableStateFlow(prefs.getBoolean("keyboard_backlight_custom_enabled", false))
+    val isKeyboardBacklightCustomEnabled: StateFlow<Boolean> = _isKeyboardBacklightCustomEnabled.asStateFlow()
+
+    private val _keyboardBacklightTimeoutSeconds = MutableStateFlow(prefs.getInt("keyboard_backlight_timeout_seconds", 60))
+    val keyboardBacklightTimeoutSeconds: StateFlow<Int> = _keyboardBacklightTimeoutSeconds.asStateFlow()
+
+    private val _keyboardBacklightKeepOnWithScreen = MutableStateFlow(prefs.getBoolean("keyboard_backlight_keep_on_with_screen", false))
+    val keyboardBacklightKeepOnWithScreen: StateFlow<Boolean> = _keyboardBacklightKeepOnWithScreen.asStateFlow()
+
+    private val _keyboardBacklightBrightness = MutableStateFlow(prefs.getInt("keyboard_backlight_brightness", 30))
+    val keyboardBacklightBrightness: StateFlow<Int> = _keyboardBacklightBrightness.asStateFlow()
+
     suspend fun setDisplayFixEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("display_fix_enabled", enabled).apply()
         _isDisplayFixEnabled.value = enabled
@@ -334,5 +347,27 @@ class SettingsRepository(context: Context) {
             prefs.edit().putInt("per_app_dpi_base_dpi", baseDpi).apply()
         }
         _perAppDpiBaseDpi.value = baseDpi
+    }
+
+    suspend fun setKeyboardBacklightCustomEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("keyboard_backlight_custom_enabled", enabled).apply()
+        _isKeyboardBacklightCustomEnabled.value = enabled
+    }
+
+    suspend fun setKeyboardBacklightTimeoutSeconds(seconds: Int) = withContext(Dispatchers.IO) {
+        val clamped = seconds.coerceIn(5, 300)
+        prefs.edit().putInt("keyboard_backlight_timeout_seconds", clamped).apply()
+        _keyboardBacklightTimeoutSeconds.value = clamped
+    }
+
+    suspend fun setKeyboardBacklightKeepOnWithScreen(keepOn: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("keyboard_backlight_keep_on_with_screen", keepOn).apply()
+        _keyboardBacklightKeepOnWithScreen.value = keepOn
+    }
+
+    suspend fun setKeyboardBacklightBrightness(brightness: Int) = withContext(Dispatchers.IO) {
+        val clamped = brightness.coerceIn(0, 100)
+        prefs.edit().putInt("keyboard_backlight_brightness", clamped).apply()
+        _keyboardBacklightBrightness.value = clamped
     }
 }

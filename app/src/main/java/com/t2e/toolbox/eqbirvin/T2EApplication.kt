@@ -31,4 +31,29 @@ class T2EApplication : Application() {
     val perAppDpiRepository: com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository by lazy {
         com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository(applicationContext, settingsRepository)
     }
+
+    val keyboardBacklightRepository: com.t2e.toolbox.eqbirvin.data.KeyboardBacklightRepository by lazy {
+        com.t2e.toolbox.eqbirvin.data.KeyboardBacklightRepository(applicationContext, settingsRepository)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        val screenFilter = android.content.IntentFilter().apply {
+            addAction(android.content.Intent.ACTION_SCREEN_ON)
+            addAction(android.content.Intent.ACTION_SCREEN_OFF)
+        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            object : android.content.BroadcastReceiver() {
+                override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                    when (intent?.action) {
+                        android.content.Intent.ACTION_SCREEN_ON -> keyboardBacklightRepository.onScreenOn()
+                        android.content.Intent.ACTION_SCREEN_OFF -> keyboardBacklightRepository.onScreenOff()
+                    }
+                }
+            },
+            screenFilter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
 }

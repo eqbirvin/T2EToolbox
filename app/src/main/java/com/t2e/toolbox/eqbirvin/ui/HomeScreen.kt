@@ -16,7 +16,8 @@ fun HomeScreen(
     onNavigateToUnifiedPullDown: () -> Unit,
     onNavigateToVolumeMode: () -> Unit,
     onNavigateToFlashlightIndicator: () -> Unit,
-    onNavigateToPerAppDpi: () -> Unit
+    onNavigateToPerAppDpi: () -> Unit,
+    onNavigateToKeyboardBacklight: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -31,6 +32,18 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToKeyboardBacklight() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Keyboard Backlight", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Custom timeout up to 5 minutes, keep lit while screen is on, and brightness control.")
+                }
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

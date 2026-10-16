@@ -47,6 +47,13 @@ class DisplayFixBootWorker(
             }
         }
 
+        if (settingsRepo.isKeyboardBacklightCustomEnabled.value) {
+            val bound = displayRepo.waitForShizuku()
+            if (bound) {
+                app.keyboardBacklightRepository.applyAllSettings()
+            }
+        }
+
         return Result.success()
     }
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0] - 2026-10-16
+### Added
+- Added "Keyboard Backlight Control" for Unihertz Titan 2 Elite:
+  - Direct integration with Unihertz vendor framework service (`agui_functional_service`) via Shizuku binder calls.
+  - **Configurable Backlight Timeout**:
+    - Stepped slider and direct numeric input supporting timeouts from **5 seconds up to 5 minutes (300s)**.
+    - Quick preset chips for rapid selection (15s, 30s, 1m, 2m, 5m).
+  - **"Keep On With Screen" Option**:
+    - Keeps the physical keyboard backlight illuminated continuously while the display remains on by setting vendor backlight timeout to 24 hours.
+    - Synchronized with screen state via `ACTION_SCREEN_ON` and `ACTION_SCREEN_OFF`: immediately extinguishes the keyboard LEDs via `agui.action.CLOSE_KEYBOARD_LIGHT` broadcast when the display turns off, and wakes the LEDs via synthetic keyevent 0 when the display wakes.
+  - **Brightness Control**:
+    - Integrated brightness slider (0–100%) adjusting the keyboard LED duty cycle directly through `agui_functional_service`.
+  - **Live Hardware Status & Persistence**:
+    - Reads active hardware timeout and brightness directly from vendor service and displays live status indicators.
+    - Restores custom backlight configuration automatically across device reboots via `DisplayFixBootWorker`.
+    - Real-time updates with immediate apply buttons and feedback snackbars.
+
 ## [0.7.2] - 2026-10-15
 ### Fixed
 - Fixed base density corruption and keyboard IME switching in Per-App Scaling:
