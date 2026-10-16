@@ -46,6 +46,11 @@ class PerAppDpiRepository(
     @Volatile
     private var lastAppliedDpi: Int? = null
 
+    @Volatile
+    private var isOverridingDpi: Boolean = false
+
+    private var physicalDensity: Int = 300
+
     private var applyJob: Job? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
@@ -84,7 +89,7 @@ class PerAppDpiRepository(
 
         repoScope.launch {
             settingsRepo.isPerAppDpiEnabled.collect { enabled ->
-                if (!enabled && lastAppliedDpi != null) {
+                if (!enabled && (lastAppliedDpi != null || isOverridingDpi)) {
                     restoreBaseDensity(immediate = true)
                 }
             }
@@ -108,17 +113,37 @@ class PerAppDpiRepository(
         return context.resources.configuration.densityDpi.coerceIn(72, 600)
     }
 
+    private suspend fun detectPhysicalDensity() {
+        if (!ShizukuShell.isReady()) return
+        val result = ShizukuShell.runShell("wm density")
+        if (result.exitCode == 0) {
+            val match = Regex("""Physical density:\s*(\d+)""").find(result.stdout)
+            match?.groupValues?.get(1)?.toIntOrNull()?.let {
+                physicalDensity = it
+            }
+            val overrideMatch = Regex("""Override density:\s*(\d+)""").find(result.stdout)
+            if (lastAppliedDpi == null && !isOverridingDpi) {
+                if (overrideMatch != null) {
+                    _activeBaseDpi.value = overrideMatch.groupValues[1].toInt()
+                } else {
+                    _activeBaseDpi.value = physicalDensity
+                }
+            }
+        }
+    }
+
     suspend fun refreshMetrics() = withContext(Dispatchers.IO) {
         val currentDpi = readSystemDensity()
         _activeDpi.value = currentDpi
-        if (lastAppliedDpi == null) {
+        detectPhysicalDensity()
+        if (lastAppliedDpi == null && !isOverridingDpi) {
             _activeBaseDpi.value = currentDpi
         }
     }
 
     fun notifyConfigurationChanged(densityDpi: Int) {
         _activeDpi.value = densityDpi
-        if (lastAppliedDpi == null) {
+        if (lastAppliedDpi == null && !isOverridingDpi) {
             _activeBaseDpi.value = densityDpi
         }
     }
@@ -133,8 +158,11 @@ class PerAppDpiRepository(
             val pm = context.packageManager
             try {
                 val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-                val homeActivities = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
-                cachedHomePackages = homeActivities.map { it.activityInfo.packageName }.toSet()
+                val homeActivities = pm.queryIntentActivities(homeIntent, 0)
+                val defaultHome = pm.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+                val homeSet = homeActivities.mapNotNull { it.activityInfo?.packageName }.toMutableSet()
+                if (defaultHome != null) homeSet.add(defaultHome)
+                cachedHomePackages = homeSet
                 lastHomeQueryTime = now
             } catch (e: Exception) {
                 // Keep existing cache
@@ -143,9 +171,32 @@ class PerAppDpiRepository(
         return cachedHomePackages.contains(packageName)
     }
 
+    private var cachedImePackages: Set<String> = emptySet()
+    private var lastImeQueryTime: Long = 0L
+
+    fun isInputMethodPackage(packageName: String): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastImeQueryTime > 30000L || cachedImePackages.isEmpty()) {
+            try {
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                cachedImePackages = imm?.enabledInputMethodList?.map { it.packageName }?.toSet() ?: emptySet()
+                lastImeQueryTime = now
+            } catch (e: Exception) {
+                // Keep existing cache
+            }
+        }
+        return cachedImePackages.contains(packageName)
+    }
+
     fun onPackageForeground(packageName: String?, isHomeOrRecents: Boolean) {
         if (!settingsRepo.isPerAppDpiEnabled.value) return
         if (packageName.isNullOrEmpty() || packageName == "android") {
+            return
+        }
+
+        // Ignore input methods (keyboards) so typing doesn't revert app density!
+        if (isInputMethodPackage(packageName)) {
+            Log.d(TAG, "Ignoring IME package: $packageName")
             return
         }
 
@@ -194,6 +245,7 @@ class PerAppDpiRepository(
             if (rule != null) {
                 val targetDpi = DpiScaleCalculator.resolveTargetDpi(rule, shortestSide)
                 if (targetDpi != lastAppliedDpi) {
+                    isOverridingDpi = true
                     val cmd = "wm density $targetDpi"
                     val result = ShizukuShell.runShell(cmd)
                     if (result.exitCode == 0) {
@@ -201,6 +253,7 @@ class PerAppDpiRepository(
                         _activeDpi.value = targetDpi
                         Log.i(TAG, "Applied per-app DPI $targetDpi (${rule.mode}) for $packageName")
                     } else {
+                        isOverridingDpi = false
                         Log.e(TAG, "Failed to apply density: ${result.stderr}")
                     }
                 }
@@ -212,16 +265,17 @@ class PerAppDpiRepository(
     }
 
     suspend fun restoreBaseDensity(immediate: Boolean = false) = withContext(Dispatchers.IO) {
-        if (lastAppliedDpi == null) return@withContext
+        if (lastAppliedDpi == null && !isOverridingDpi) return@withContext
         if (!ShizukuShell.isReady()) {
             lastAppliedDpi = null
+            isOverridingDpi = false
             return@withContext
         }
 
         val userConfiguredBase = settingsRepo.perAppDpiBaseDpi.value
         val baseDpi = userConfiguredBase ?: _activeBaseDpi.value
 
-        val cmd = if (userConfiguredBase == null && baseDpi == 300) {
+        val cmd = if (userConfiguredBase == null && (baseDpi == physicalDensity || baseDpi == 300)) {
             "wm density reset"
         } else {
             "wm density $baseDpi"
@@ -230,6 +284,7 @@ class PerAppDpiRepository(
         val result = ShizukuShell.runShell(cmd)
         if (result.exitCode == 0) {
             lastAppliedDpi = null
+            isOverridingDpi = false
             _activeDpi.value = baseDpi
             Log.i(TAG, "Restored base density $baseDpi (immediate=$immediate, cmd: $cmd)")
         } else {

@@ -12,8 +12,8 @@ android {
         applicationId = "com.t2e.toolbox.eqbirvin"
         minSdk = 31
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.7.1"
+        versionCode = 18
+        versionName = "0.7.2"
 
         vectorDrawables {
             useSupportLibrary = true

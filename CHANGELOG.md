@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.2] - 2026-10-15
+### Fixed
+- Fixed base density corruption and keyboard IME switching in Per-App Scaling:
+  - **IME / Keyboard Filtering**: Added active input method detection (`InputMethodManager.enabledInputMethodList`) to ignore keyboard popups (e.g. PhysiBoard, Gboard) during texting/typing, ensuring app scaling stays locked to tablet layout and does not trigger spurious app switches.
+  - **Base Density Override Protection**: Introduced atomic `isOverridingDpi` state tracking to prevent WindowManager's asynchronous `onConfigurationChanged` callback from overwriting base density with the temporary target DPI during density transitions.
+  - **Physical Density Detection & Safe Reset**: Added direct physical density detection via `wm density` output; when returning to base without user custom override, reliably executes `wm density reset` to cleanly restore stock hardware density.
+  - **Comprehensive Home Launcher Detection**: Enhanced launcher package resolution to query both `queryIntentActivities` and `resolveActivity`, ensuring third-party launchers like Nova Launcher trigger immediate reversion to base density.
+
 ## [0.7.1] - 2026-10-15
 ### Fixed
 - Fixed app picker only displaying ~5 apps in Per-App Scaling:

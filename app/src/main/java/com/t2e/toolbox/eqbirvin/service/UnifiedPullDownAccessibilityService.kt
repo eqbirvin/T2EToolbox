@@ -191,6 +191,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
             return
         }
         val isHomeOrRecents = perAppDpiRepo.isHomeOrRecentsPackage(pkg)
+        Log.d(TAG, "WindowState: pkg=$pkg, class=$className, isHome=$isHomeOrRecents")
         perAppDpiRepo.onPackageForeground(pkg, isHomeOrRecents)
     }
 
