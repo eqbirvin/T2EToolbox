@@ -232,6 +232,19 @@ class SettingsRepository(context: Context) {
     private val _keyboardBacklightBrightness = MutableStateFlow(prefs.getInt("keyboard_backlight_brightness", 30))
     val keyboardBacklightBrightness: StateFlow<Int> = _keyboardBacklightBrightness.asStateFlow()
 
+    // Circle to Search Cleanup
+    private val _isCtsAutoCleanupEnabled = MutableStateFlow(prefs.getBoolean("cts_auto_cleanup_enabled", true))
+    val isCtsAutoCleanupEnabled: StateFlow<Boolean> = _isCtsAutoCleanupEnabled.asStateFlow()
+
+    private val _ctsCleanupDelaySeconds = MutableStateFlow(prefs.getInt("cts_cleanup_delay_seconds", 4))
+    val ctsCleanupDelaySeconds: StateFlow<Int> = _ctsCleanupDelaySeconds.asStateFlow()
+
+    private val _lastCtsCleanedTimestamp = MutableStateFlow(prefs.getLong("last_cts_cleaned_timestamp", 0L))
+    val lastCtsCleanedTimestamp: StateFlow<Long> = _lastCtsCleanedTimestamp.asStateFlow()
+
+    private val _lastCtsCleanedCount = MutableStateFlow(prefs.getInt("last_cts_cleaned_count", 0))
+    val lastCtsCleanedCount: StateFlow<Int> = _lastCtsCleanedCount.asStateFlow()
+
     suspend fun setDisplayFixEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("display_fix_enabled", enabled).apply()
         _isDisplayFixEnabled.value = enabled
@@ -369,5 +382,25 @@ class SettingsRepository(context: Context) {
         val clamped = brightness.coerceIn(0, 100)
         prefs.edit().putInt("keyboard_backlight_brightness", clamped).apply()
         _keyboardBacklightBrightness.value = clamped
+    }
+
+    suspend fun setCtsAutoCleanupEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("cts_auto_cleanup_enabled", enabled).apply()
+        _isCtsAutoCleanupEnabled.value = enabled
+    }
+
+    suspend fun setCtsCleanupDelaySeconds(seconds: Int) = withContext(Dispatchers.IO) {
+        val clamped = seconds.coerceIn(2, 15)
+        prefs.edit().putInt("cts_cleanup_delay_seconds", clamped).apply()
+        _ctsCleanupDelaySeconds.value = clamped
+    }
+
+    suspend fun setLastCtsCleaned(timestamp: Long, count: Int) = withContext(Dispatchers.IO) {
+        prefs.edit()
+            .putLong("last_cts_cleaned_timestamp", timestamp)
+            .putInt("last_cts_cleaned_count", count)
+            .apply()
+        _lastCtsCleanedTimestamp.value = timestamp
+        _lastCtsCleanedCount.value = count
     }
 }

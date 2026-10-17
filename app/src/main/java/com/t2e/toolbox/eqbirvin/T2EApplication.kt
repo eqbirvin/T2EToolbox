@@ -36,8 +36,13 @@ class T2EApplication : Application() {
         com.t2e.toolbox.eqbirvin.data.KeyboardBacklightRepository(applicationContext, settingsRepository)
     }
 
+    val circleToSearchCleanupRepository: com.t2e.toolbox.eqbirvin.data.CircleToSearchCleanupRepository by lazy {
+        com.t2e.toolbox.eqbirvin.data.CircleToSearchCleanupRepository(applicationContext, settingsRepository)
+    }
+
     override fun onCreate() {
         super.onCreate()
+        circleToSearchCleanupRepository.startObserving()
         val screenFilter = android.content.IntentFilter().apply {
             addAction(android.content.Intent.ACTION_SCREEN_ON)
             addAction(android.content.Intent.ACTION_SCREEN_OFF)

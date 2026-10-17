@@ -184,6 +184,14 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
             val className = event.className?.toString() ?: ""
             handlePerAppDpiWindowState(pkg, className)
+            handleCtsWindowState(pkg, className)
+        }
+    }
+
+    private fun handleCtsWindowState(pkg: String, className: String) {
+        if (pkg == "com.google.android.googlequicksearchbox" && className.contains("Lens", ignoreCase = true)) {
+            val app = application as? T2EApplication ?: return
+            app.circleToSearchCleanupRepository.onLensActivityDetected()
         }
     }
 

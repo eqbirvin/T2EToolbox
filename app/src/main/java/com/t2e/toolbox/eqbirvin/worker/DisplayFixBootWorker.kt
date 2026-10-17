@@ -54,6 +54,13 @@ class DisplayFixBootWorker(
             }
         }
 
+        if (settingsRepo.isCtsAutoCleanupEnabled.value) {
+            val bound = displayRepo.waitForShizuku(timeoutMs = 15000)
+            if (bound) {
+                app.circleToSearchCleanupRepository.cleanNow()
+            }
+        }
+
         return Result.success()
     }
 

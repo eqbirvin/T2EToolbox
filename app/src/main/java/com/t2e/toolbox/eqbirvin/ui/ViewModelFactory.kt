@@ -23,7 +23,8 @@ class AppViewModelFactory(
     private val volumeRepo: VolumeModeRepository,
     private val flashlightRepo: FlashlightRepository,
     private val perAppDpiRepo: PerAppDpiRepository,
-    private val keyboardBacklightRepo: com.t2e.toolbox.eqbirvin.data.KeyboardBacklightRepository
+    private val keyboardBacklightRepo: com.t2e.toolbox.eqbirvin.data.KeyboardBacklightRepository,
+    private val ctsCleanupRepo: com.t2e.toolbox.eqbirvin.data.CircleToSearchCleanupRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DisplayFixViewModel::class.java)) {
@@ -49,6 +50,10 @@ class AppViewModelFactory(
         if (modelClass.isAssignableFrom(com.t2e.toolbox.eqbirvin.ui.keyboardbacklight.KeyboardBacklightViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return com.t2e.toolbox.eqbirvin.ui.keyboardbacklight.KeyboardBacklightViewModel(settingsRepo, keyboardBacklightRepo, displayRepo) as T
+        }
+        if (modelClass.isAssignableFrom(com.t2e.toolbox.eqbirvin.ui.ctscleanup.CircleToSearchCleanupViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return com.t2e.toolbox.eqbirvin.ui.ctscleanup.CircleToSearchCleanupViewModel(settingsRepo, ctsCleanupRepo, displayRepo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

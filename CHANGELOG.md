@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0] - 2026-10-16
+### Added
+- Added "Circle to Search Cleanup" tool & automatic cleaner for Unihertz Titan 2 Elite:
+  - Solves Unihertz's Circle to Search (`AguiAiCircleSearch.apk`) flaw where screen captures and cropped searches accumulate indefinitely in `/sdcard/Pictures/AguiCircleSearch/` without deletion.
+  - **Automatic Cleanup Observer**:
+    - Listens for CTS completion via `Settings.Global` (`agui_circle_search_finishing`) and accessibility window events transitioning to Google Lens.
+    - Employs a configurable safety delay (default 4 seconds) to guarantee Google Lens has completely ingested the image into memory before purging.
+    - Deletes orphaned screenshot files on disk and purges broken MediaStore records via privileged Shizuku commands to prevent broken gallery thumbnails.
+  - **Manual Storage Management UI**:
+    - Real-time disk scanner displaying active count and reclaimed storage footprint.
+    - One-tap "Clean Storage Now" action with instant feedback.
+  - **Boot Cleanup**:
+    - Automatically sweeps stale CTS screenshots upon device boot via `DisplayFixBootWorker`.
+
 ## [0.8.0] - 2026-10-16
 ### Added
 - Added "Keyboard Backlight Control" for Unihertz Titan 2 Elite:

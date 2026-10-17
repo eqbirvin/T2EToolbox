@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
         val flashlightRepo = app.flashlightRepository
         val perAppDpiRepo = app.perAppDpiRepository
         val keyboardBacklightRepo = app.keyboardBacklightRepository
+        val ctsCleanupRepo = app.circleToSearchCleanupRepository
 
         val viewModelFactory = AppViewModelFactory(
             context = this,
@@ -59,7 +60,8 @@ class MainActivity : ComponentActivity() {
             volumeRepo = volumeRepo,
             flashlightRepo = flashlightRepo,
             perAppDpiRepo = perAppDpiRepo,
-            keyboardBacklightRepo = keyboardBacklightRepo
+            keyboardBacklightRepo = keyboardBacklightRepo,
+            ctsCleanupRepo = ctsCleanupRepo
         )
 
         setContent {
@@ -77,7 +79,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToVolumeMode = { navController.navigate("volumeMode") },
                                 onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") },
                                 onNavigateToPerAppDpi = { navController.navigate("perAppDpi") },
-                                onNavigateToKeyboardBacklight = { navController.navigate("keyboardBacklight") }
+                                onNavigateToKeyboardBacklight = { navController.navigate("keyboardBacklight") },
+                                onNavigateToCtsCleanup = { navController.navigate("ctsCleanup") }
                             )
                         }
                         composable("perAppDpi") {
@@ -217,6 +220,28 @@ class MainActivity : ComponentActivity() {
                             }
 
                             com.t2e.toolbox.eqbirvin.ui.keyboardbacklight.KeyboardBacklightScreen(
+                                uiState = uiState,
+                                actions = actions
+                            )
+                        }
+                        composable("ctsCleanup") {
+                            val viewModel: com.t2e.toolbox.eqbirvin.ui.ctscleanup.CircleToSearchCleanupViewModel =
+                                viewModel(factory = viewModelFactory)
+                            val uiState by viewModel.uiState.collectAsState()
+
+                            val actions = remember(viewModel, navController) {
+                                com.t2e.toolbox.eqbirvin.ui.ctscleanup.CtsCleanupActions(
+                                    onToggleAutoCleanup = { viewModel.toggleAutoCleanup(it) },
+                                    onSetDelaySeconds = { viewModel.setDelaySeconds(it) },
+                                    onCleanNow = { viewModel.cleanNow() },
+                                    onRefresh = { viewModel.refresh() },
+                                    onRequestPermission = { viewModel.requestShizukuPermission() },
+                                    onClearStatusMessage = { viewModel.clearStatusMessage() },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            com.t2e.toolbox.eqbirvin.ui.ctscleanup.CircleToSearchCleanupScreen(
                                 uiState = uiState,
                                 actions = actions
                             )

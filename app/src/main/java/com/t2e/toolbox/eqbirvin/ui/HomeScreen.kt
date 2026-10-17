@@ -17,7 +17,8 @@ fun HomeScreen(
     onNavigateToVolumeMode: () -> Unit,
     onNavigateToFlashlightIndicator: () -> Unit,
     onNavigateToPerAppDpi: () -> Unit,
-    onNavigateToKeyboardBacklight: () -> Unit
+    onNavigateToKeyboardBacklight: () -> Unit,
+    onNavigateToCtsCleanup: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -101,6 +102,18 @@ fun HomeScreen(
                     Text("Flashlight Indicator", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Displays a clean horizontal icon in the center of the status bar when the flashlight is active.")
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToCtsCleanup() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Circle to Search Cleanup", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Auto-delete orphaned screenshots after Google Lens opens, and one-tap storage purge.")
                 }
             }
         }
