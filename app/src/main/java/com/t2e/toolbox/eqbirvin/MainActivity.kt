@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
         val perAppDpiRepo = app.perAppDpiRepository
         val keyboardBacklightRepo = app.keyboardBacklightRepository
         val ctsCleanupRepo = app.circleToSearchCleanupRepository
+        val typingBlockRepo = app.typingScrollBlockRepository
 
         val viewModelFactory = AppViewModelFactory(
             context = this,
@@ -61,7 +62,8 @@ class MainActivity : ComponentActivity() {
             flashlightRepo = flashlightRepo,
             perAppDpiRepo = perAppDpiRepo,
             keyboardBacklightRepo = keyboardBacklightRepo,
-            ctsCleanupRepo = ctsCleanupRepo
+            ctsCleanupRepo = ctsCleanupRepo,
+            typingBlockRepo = typingBlockRepo
         )
 
         setContent {
@@ -73,15 +75,19 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "home") {
                         composable("home") {
-                            HomeScreen(
-                                onNavigateToDisplayFix = { navController.navigate("displayFix") },
-                                onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") },
-                                onNavigateToVolumeMode = { navController.navigate("volumeMode") },
-                                onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") },
-                                onNavigateToPerAppDpi = { navController.navigate("perAppDpi") },
-                                onNavigateToKeyboardBacklight = { navController.navigate("keyboardBacklight") },
-                                onNavigateToCtsCleanup = { navController.navigate("ctsCleanup") }
-                            )
+                            val homeActions = remember(navController) {
+                                com.t2e.toolbox.eqbirvin.ui.HomeScreenActions(
+                                    onNavigateToKeyboardBacklight = { navController.navigate("keyboardBacklight") },
+                                    onNavigateToTypingScrollBlock = { navController.navigate("typingScrollBlock") },
+                                    onNavigateToPerAppDpi = { navController.navigate("perAppDpi") },
+                                    onNavigateToDisplayFix = { navController.navigate("displayFix") },
+                                    onNavigateToUnifiedPullDown = { navController.navigate("unifiedPullDown") },
+                                    onNavigateToVolumeMode = { navController.navigate("volumeMode") },
+                                    onNavigateToFlashlightIndicator = { navController.navigate("flashlightIndicator") },
+                                    onNavigateToCtsCleanup = { navController.navigate("ctsCleanup") }
+                                )
+                            }
+                            HomeScreen(actions = homeActions)
                         }
                         composable("perAppDpi") {
                             val viewModel: PerAppDpiViewModel = viewModel(factory = viewModelFactory)
@@ -242,6 +248,27 @@ class MainActivity : ComponentActivity() {
                             }
 
                             com.t2e.toolbox.eqbirvin.ui.ctscleanup.CircleToSearchCleanupScreen(
+                                uiState = uiState,
+                                actions = actions
+                            )
+                        }
+                        composable("typingScrollBlock") {
+                            val viewModel: com.t2e.toolbox.eqbirvin.ui.typingblock.TypingScrollBlockViewModel =
+                                viewModel(factory = viewModelFactory)
+                            val uiState by viewModel.uiState.collectAsState()
+
+                            val actions = remember(viewModel, navController) {
+                                com.t2e.toolbox.eqbirvin.ui.typingblock.TypingScrollBlockActions(
+                                    onToggleEnabled = { viewModel.toggleEnabled(it) },
+                                    onSetDebounceMs = { viewModel.setDebounceMs(it) },
+                                    onOpenAccessibilitySettings = {
+                                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                                    },
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            com.t2e.toolbox.eqbirvin.ui.typingblock.TypingScrollBlockScreen(
                                 uiState = uiState,
                                 actions = actions
                             )

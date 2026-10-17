@@ -40,6 +40,10 @@ class T2EApplication : Application() {
         com.t2e.toolbox.eqbirvin.data.CircleToSearchCleanupRepository(applicationContext, settingsRepository)
     }
 
+    val typingScrollBlockRepository: com.t2e.toolbox.eqbirvin.data.TypingScrollBlockRepository by lazy {
+        com.t2e.toolbox.eqbirvin.data.TypingScrollBlockRepository(settingsRepository)
+    }
+
     override fun onCreate() {
         super.onCreate()
         circleToSearchCleanupRepository.startObserving()

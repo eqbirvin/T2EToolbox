@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.0] - 2026-10-16
+### Added
+- Added "Block Scroll While Typing" feature for Unihertz Titan 2 Elite:
+  - Eliminates accidental scrolling and page bouncing caused by thumb swipes while typing on the capacitive physical keyboard.
+  - **Dynamic Input Filtering via Accessibility Framework**:
+    - Listens for physical keystrokes (`canRequestFilterKeyEvents` and `FLAG_REQUEST_FILTER_KEY_EVENTS`).
+    - Dynamically claims `InputDevice.SOURCE_TOUCHPAD` on the active accessibility service when physical typing begins, routing capacitive swipes to `onMotionEvent()` where they are silently discarded by the system `InputDispatcher`.
+    - Normal display glass touches (`SOURCE_TOUCHSCREEN`) remain 100% unaffected.
+    - Physical keystrokes are never consumed or delayed (`onKeyEvent` returns `false`).
+  - **Rolling Debounce Window & Automatic Restoration**:
+    - Configurable delay (300ms–2500ms, default 800ms) with presets for Fast (400ms), Default (800ms), Deliberate (1200ms), and Relaxed (1600ms) typists.
+    - Automatically clears touchpad interception when typing pauses, instantly restoring smooth trackpad scrolling for reading and web browsing.
+  - **Interactive Live Typing Test Area**:
+    - Built-in live test field in `TypingScrollBlockScreen` showing real-time feedback badges ("Typing Detected — Trackpad Scroll Blocked!" vs "Idle — Trackpad Scroll Allowed") to easily test and tune debounce settings.
+  - Zero root or Shizuku requirement; runs completely in-memory in Android's input pipeline.
+
 ## [0.9.0] - 2026-10-16
 ### Added
 - Added "Circle to Search Cleanup" tool & automatic cleaner for Unihertz Titan 2 Elite:

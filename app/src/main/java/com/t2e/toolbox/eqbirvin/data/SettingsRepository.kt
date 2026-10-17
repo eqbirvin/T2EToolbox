@@ -245,6 +245,13 @@ class SettingsRepository(context: Context) {
     private val _lastCtsCleanedCount = MutableStateFlow(prefs.getInt("last_cts_cleaned_count", 0))
     val lastCtsCleanedCount: StateFlow<Int> = _lastCtsCleanedCount.asStateFlow()
 
+    // Block Scroll While Typing
+    private val _isBlockScrollWhileTypingEnabled = MutableStateFlow(prefs.getBoolean("block_scroll_while_typing_enabled", false))
+    val isBlockScrollWhileTypingEnabled: StateFlow<Boolean> = _isBlockScrollWhileTypingEnabled.asStateFlow()
+
+    private val _scrollBlockDebounceMs = MutableStateFlow(prefs.getInt("scroll_block_debounce_ms", 800))
+    val scrollBlockDebounceMs: StateFlow<Int> = _scrollBlockDebounceMs.asStateFlow()
+
     suspend fun setDisplayFixEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("display_fix_enabled", enabled).apply()
         _isDisplayFixEnabled.value = enabled
@@ -402,5 +409,16 @@ class SettingsRepository(context: Context) {
             .apply()
         _lastCtsCleanedTimestamp.value = timestamp
         _lastCtsCleanedCount.value = count
+    }
+
+    suspend fun setBlockScrollWhileTypingEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("block_scroll_while_typing_enabled", enabled).apply()
+        _isBlockScrollWhileTypingEnabled.value = enabled
+    }
+
+    suspend fun setScrollBlockDebounceMs(ms: Int) = withContext(Dispatchers.IO) {
+        val clamped = ms.coerceIn(300, 2500)
+        prefs.edit().putInt("scroll_block_debounce_ms", clamped).apply()
+        _scrollBlockDebounceMs.value = clamped
     }
 }

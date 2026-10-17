@@ -49,10 +49,12 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private lateinit var pullDownRepo: UnifiedPullDownRepository
     private lateinit var displayFixRepo: DisplayFixRepository
     private lateinit var perAppDpiRepo: com.t2e.toolbox.eqbirvin.data.PerAppDpiRepository
+    private lateinit var typingBlockRepo: com.t2e.toolbox.eqbirvin.data.TypingScrollBlockRepository
 
     private var windowManager: WindowManager? = null
     private var overlayView: StatusbarOverlayView? = null
     private var flashlightOverlayMgr: FlashlightOverlayManager? = null
+    private var typingScrollBlockMgr: TypingScrollBlockManager? = null
     private var currentLayoutParams: WindowManager.LayoutParams? = null
     private var currentHeight: Int = 0
 
@@ -65,11 +67,8 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private var isSmartShadeDetectionEnabled = true
     private var isHapticFeedbackEnabled = true
     private var currentMethod = PullDownMethod.ACCESSIBILITY
-    private var isPassingThroughTap = false
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val restoreTouchableRunnable = Runnable {
-        restoreTouchable()
-    }
+    private var tapPassThroughController: OverlayTapPassThroughController? = null
 
     private val keyguardReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
@@ -98,9 +97,14 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         pullDownRepo = app.unifiedPullDownRepository
         displayFixRepo = app.displayFixRepository
         perAppDpiRepo = app.perAppDpiRepository
+        typingBlockRepo = app.typingScrollBlockRepository
+        typingScrollBlockMgr = TypingScrollBlockManager(this, typingBlockRepo, serviceScope)
         val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager = wm
         flashlightOverlayMgr = FlashlightOverlayManager(this, wm, app.flashlightRepository, settingsRepo)
+        tapPassThroughController = OverlayTapPassThroughController(this, { windowManager }, mainHandler).apply {
+            bind({ overlayView }, { currentLayoutParams })
+        }
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -114,6 +118,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         isServiceConnected = true
         pullDownRepo.setServiceConnected(true)
+        typingBlockRepo.setServiceConnected(true)
 
         connectionJob?.cancel()
         val job = SupervisorJob()
@@ -169,7 +174,28 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
             }
         }
 
+        connectionScope.launch {
+            kotlinx.coroutines.flow.combine(
+                settingsRepo.isBlockScrollWhileTypingEnabled,
+                settingsRepo.scrollBlockDebounceMs
+            ) { enabled, debounce ->
+                Pair(enabled, debounce)
+            }.collect { (enabled, debounce) ->
+                typingScrollBlockMgr?.updateConfig(enabled, debounce)
+            }
+        }
+
         flashlightOverlayMgr?.start(connectionScope)
+    }
+
+    override fun onKeyEvent(event: android.view.KeyEvent): Boolean {
+        val handled = typingScrollBlockMgr?.onKeyEvent(event) ?: false
+        return handled || super.onKeyEvent(event)
+    }
+
+    override fun onMotionEvent(event: android.view.MotionEvent) {
+        typingScrollBlockMgr?.onMotionEvent(event)
+        super.onMotionEvent(event)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -258,7 +284,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
             context = this,
             swipeHapticFeedbackEnabled = isHapticFeedbackEnabled,
             onSwipeDetected = { onSwipe() },
-            onTapDetected = { x, y -> passThroughTap(x, y) }
+            onTapDetected = { x, y -> tapPassThroughController?.passThroughTap(x, y) }
         ).also { overlayView = it }
         val height = getStatusBarHeight()
         currentHeight = height
@@ -290,8 +316,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
     private fun detachOverlay() {
         if (!isViewAttached) return
         val view = overlayView ?: return
-        mainHandler.removeCallbacks(restoreTouchableRunnable)
-        isPassingThroughTap = false
+        tapPassThroughController?.cleanup()
         try {
             windowManager?.removeView(view)
         } catch (e: IllegalArgumentException) {
@@ -311,80 +336,6 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         val hideOnLock = !activeOnLockscreen && checkKeyguardLocked()
         val shouldBeVisible = isFeatureEnabled && !hideOnLock
         view.visibility = if (shouldBeVisible) View.VISIBLE else View.GONE
-    }
-
-    private fun passThroughTap(x: Float, y: Float) {
-        if (isPassingThroughTap) return
-        val view = overlayView ?: return
-        val params = currentLayoutParams ?: return
-        val wm = windowManager ?: return
-
-        isPassingThroughTap = true
-        params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        try {
-            wm.updateViewLayout(view, params)
-        } catch (e: IllegalArgumentException) {
-            Log.e(TAG, "IllegalArgumentException setting FLAG_NOT_TOUCHABLE", e)
-            isPassingThroughTap = false
-            return
-        }
-
-        mainHandler.postDelayed(restoreTouchableRunnable, 250)
-
-        try {
-            val path = Path().apply {
-                moveTo(x, y)
-                lineTo(x, y + 1f)
-            }
-            val stroke = GestureDescription.StrokeDescription(path, 0, 40)
-            val gesture = GestureDescription.Builder().addStroke(stroke).build()
-
-            val dispatched = dispatchGesture(gesture, object : GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) {
-                    mainHandler.removeCallbacks(restoreTouchableRunnable)
-                    restoreTouchable()
-                }
-
-                override fun onCancelled(gestureDescription: GestureDescription?) {
-                    mainHandler.removeCallbacks(restoreTouchableRunnable)
-                    restoreTouchable()
-                }
-            }, null)
-
-            if (!dispatched) {
-                Log.w(TAG, "dispatchGesture returned false")
-                mainHandler.removeCallbacks(restoreTouchableRunnable)
-                restoreTouchable()
-            }
-        } catch (e: IllegalArgumentException) {
-            Log.e(TAG, "IllegalArgumentException in passThroughTap gesture", e)
-            mainHandler.removeCallbacks(restoreTouchableRunnable)
-            restoreTouchable()
-        } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException in passThroughTap gesture", e)
-            mainHandler.removeCallbacks(restoreTouchableRunnable)
-            restoreTouchable()
-        } catch (e: IllegalStateException) {
-            Log.e(TAG, "IllegalStateException in passThroughTap gesture", e)
-            mainHandler.removeCallbacks(restoreTouchableRunnable)
-            restoreTouchable()
-        }
-    }
-
-    private fun restoreTouchable() {
-        if (!isPassingThroughTap) return
-        val view = overlayView ?: return
-        val params = currentLayoutParams ?: return
-        val wm = windowManager ?: return
-
-        params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
-        try {
-            wm.updateViewLayout(view, params)
-        } catch (e: IllegalArgumentException) {
-            Log.e(TAG, "IllegalArgumentException restoring touchable flag", e)
-        } finally {
-            isPassingThroughTap = false
-        }
     }
 
     private fun updateDebugTint() {
@@ -444,8 +395,10 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         connectionJob?.cancel()
         connectionJob = null
         pullDownRepo.setServiceConnected(false)
+        typingBlockRepo.setServiceConnected(false)
         detachOverlay()
         flashlightOverlayMgr?.stop()
+        typingScrollBlockMgr?.cleanup()
         return super.onUnbind(intent)
     }
 
@@ -455,7 +408,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         connectionJob?.cancel()
         connectionJob = null
         pullDownRepo.setServiceConnected(false)
-        mainHandler.removeCallbacks(restoreTouchableRunnable)
+        typingBlockRepo.setServiceConnected(false)
         try {
             unregisterReceiver(keyguardReceiver)
         } catch (e: IllegalArgumentException) {
@@ -465,6 +418,10 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         overlayView = null
         flashlightOverlayMgr?.stop()
         flashlightOverlayMgr = null
+        typingScrollBlockMgr?.cleanup()
+        typingScrollBlockMgr = null
+        tapPassThroughController?.cleanup()
+        tapPassThroughController = null
         serviceScope.cancel()
     }
 }

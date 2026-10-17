@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">T2E Toolbox</string>
     <string name="unified_pulldown_service_name">Unified Pull-Down Service</string>
-    <string name="unified_pulldown_service_description">Draws an invisible touch strip over the status bar to provide stock notification and Quick Settings swipe gestures. Reads only the System UI shade layout to tell whether notifications or Quick Settings are open. Does not read other apps\' content or collect personal information.</string>
+    <string name="unified_pulldown_service_description">Draws an invisible touch strip over the status bar to provide stock notification and Quick Settings swipe gestures, and suppresses accidental keyboard trackpad scrolling while actively typing. Does not read other apps\' content or collect personal information.</string>
     <string name="volume_mode_app_name">Volume Mode</string>
     <string name="volume_mode_title">Volume Mode Switcher</string>
     <string name="volume_mode_description">Adds an invisible shortcut app to cycle between Sound, Vibrate, and Silent modes when launched or triggered by the programmable side key.</string>

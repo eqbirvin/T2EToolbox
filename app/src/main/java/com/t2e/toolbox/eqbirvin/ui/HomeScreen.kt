@@ -9,17 +9,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+data class HomeScreenActions(
+    val onNavigateToKeyboardBacklight: () -> Unit,
+    val onNavigateToTypingScrollBlock: () -> Unit,
+    val onNavigateToPerAppDpi: () -> Unit,
+    val onNavigateToDisplayFix: () -> Unit,
+    val onNavigateToUnifiedPullDown: () -> Unit,
+    val onNavigateToVolumeMode: () -> Unit,
+    val onNavigateToFlashlightIndicator: () -> Unit,
+    val onNavigateToCtsCleanup: () -> Unit
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    onNavigateToDisplayFix: () -> Unit,
-    onNavigateToUnifiedPullDown: () -> Unit,
-    onNavigateToVolumeMode: () -> Unit,
-    onNavigateToFlashlightIndicator: () -> Unit,
-    onNavigateToPerAppDpi: () -> Unit,
-    onNavigateToKeyboardBacklight: () -> Unit,
-    onNavigateToCtsCleanup: () -> Unit
-) {
+fun HomeScreen(actions: HomeScreenActions) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("T2E Toolbox") })
@@ -36,7 +39,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToKeyboardBacklight() }
+                    .clickable { actions.onNavigateToKeyboardBacklight() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Keyboard Backlight", style = MaterialTheme.typography.titleMedium)
@@ -48,7 +51,19 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToPerAppDpi() }
+                    .clickable { actions.onNavigateToTypingScrollBlock() }
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Block Scroll While Typing", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Prevent accidental trackpad scrolls and page bouncing while actively typing on the physical keyboard.")
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { actions.onNavigateToPerAppDpi() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Per-App Scaling (DPI)", style = MaterialTheme.typography.titleMedium)
@@ -60,7 +75,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToDisplayFix() }
+                    .clickable { actions.onNavigateToDisplayFix() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Display Fix", style = MaterialTheme.typography.titleMedium)
@@ -72,7 +87,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToUnifiedPullDown() }
+                    .clickable { actions.onNavigateToUnifiedPullDown() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Unified Pull-Down", style = MaterialTheme.typography.titleMedium)
@@ -84,7 +99,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToVolumeMode() }
+                    .clickable { actions.onNavigateToVolumeMode() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Volume Mode Switcher", style = MaterialTheme.typography.titleMedium)
@@ -96,7 +111,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToFlashlightIndicator() }
+                    .clickable { actions.onNavigateToFlashlightIndicator() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Flashlight Indicator", style = MaterialTheme.typography.titleMedium)
@@ -108,7 +123,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onNavigateToCtsCleanup() }
+                    .clickable { actions.onNavigateToCtsCleanup() }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Circle to Search Cleanup", style = MaterialTheme.typography.titleMedium)
