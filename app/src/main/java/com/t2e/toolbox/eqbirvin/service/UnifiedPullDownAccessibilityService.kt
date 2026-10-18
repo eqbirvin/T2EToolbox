@@ -99,9 +99,9 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         displayFixRepo = app.displayFixRepository
         perAppDpiRepo = app.perAppDpiRepository
         typingBlockRepo = app.typingScrollBlockRepository
-        typingScrollBlockMgr = TypingScrollBlockManager(this, typingBlockRepo, serviceScope)
         val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager = wm
+        typingScrollBlockMgr = TypingScrollBlockManager(this, wm, typingBlockRepo, serviceScope)
         flashlightOverlayMgr = FlashlightOverlayManager(this, wm, app.flashlightRepository, settingsRepo)
         tapPassThroughController = OverlayTapPassThroughController(this, { windowManager }, mainHandler).apply {
             bind({ overlayView }, { currentLayoutParams })

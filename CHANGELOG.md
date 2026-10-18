@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.2] - 2026-10-18
+### Fixed
+- **Block Scroll While Typing — Native `findTouchedWindowAt` `"InputMethod"` Sink & Compose Focus Fix**:
+  - **Root Cause (`libinputflinger.so` `0x203bd8` & `0x205184`)**: When `debug.sf.agui_input_status == "1"`, Unihertz's `InputDispatcher::notifyMotion` keeps `source = AINPUT_SOURCE_TOUCHPAD` and `dispatchMotionLocked` (`AGOLD:dispatchMotionLocked >>>>>> Find target window (InputMethod) !!!!`) directs `findTouchedWindowAt` to find a window whose title contains `"InputMethod"` to absorb touchpad motion events. When using a zero-window physical keyboard IME like **PhysiBoard**, no `"InputMethod"` window exists in `InputDispatcher`, causing `findTouchedWindowAt` to fall through to the foreground app window and scroll it.
+  - **1×1 `"InputMethod"` Touchpad Sink Overlay**: Added a 1×1 transparent, `FLAG_NOT_FOCUSABLE | FLAG_NOT_TOUCHABLE` `TYPE_ACCESSIBILITY_OVERLAY` window titled `"InputMethod"` in `TypingScrollBlockManager`. When `debug.sf.agui_input_status == "1"`, `findTouchedWindowAt` (`0x2051d0`) matches this sink window *before* checking `FLAG_NOT_TOUCHABLE` (`0x205214`) and routes touchpad swipes into the sink `View` where they are consumed and dropped. When `debug.sf.agui_input_status == "0"` (or for any normal `AINPUT_SOURCE_TOUCHSCREEN` touch), `findTouchedWindowAt` skips the `"InputMethod"` check and obeys `FLAG_NOT_TOUCHABLE`, leaving normal scrolling and touchscreen touches 100% unaffected.
+  - **Compose & Popup Focus Retention**: Fixed `handleFocusEvent` prematurely clearing text field focus when secondary `TYPE_VIEW_TEXT_SELECTION_CHANGED` or container/popup focus events fire with a `null` or non-editable `event.source` while an editable input field still holds `FOCUS_INPUT` in `rootInActiveWindow`.
+  - **Mutex-Serialized Property Sync & 200ms Watchdog**: Serialized `debug.sf.agui_input_status` updates with a coroutine `Mutex` and a 200ms shared-memory watchdog while claimed.
+
 ## [0.12.1] - 2026-10-18
 ### Fixed
 - **Block Scroll While Typing on Unihertz Titan 2 Elite (`libinputflinger.so` & PhysiBoard Fix)**:
