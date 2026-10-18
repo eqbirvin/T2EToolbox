@@ -433,7 +433,7 @@ class SettingsRepository(context: Context) {
     }
 
     suspend fun setScrollBlockDebounceMs(ms: Int) = withContext(Dispatchers.IO) {
-        val clamped = ms.coerceIn(300, 2500)
+        val clamped = ms.coerceIn(300, 10000)
         prefs.edit().putInt("scroll_block_debounce_ms", clamped).apply()
         _scrollBlockDebounceMs.value = clamped
     }

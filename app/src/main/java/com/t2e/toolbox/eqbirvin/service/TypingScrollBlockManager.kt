@@ -62,7 +62,7 @@ class TypingScrollBlockManager(
         isEnabled = masterEnabled
         isBlockOnKeystroke = blockOnKeystroke
         isBlockOnTextFieldFocus = blockOnTextFieldFocus
-        debounceMs = debounce.coerceIn(300, 2500)
+        debounceMs = debounce.coerceIn(300, 10000)
         Log.d(
             TAG,
             "updateConfig: enabled=$masterEnabled, keystroke=$blockOnKeystroke, textField=$blockOnTextFieldFocus, debounceMs=$debounceMs"
@@ -228,6 +228,8 @@ class TypingScrollBlockManager(
         val propMismatch = readNativeAguiInputStatus() != expectedProp
         if (shouldClaim != isTouchpadClaimed || propMismatch) {
             claimTouchpad(shouldClaim)
+        } else if (shouldClaim) {
+            startImeWatchdog()
         }
         repository.setScrollSuppressed(shouldClaim)
     }
@@ -268,11 +270,12 @@ class TypingScrollBlockManager(
     }
 
     private fun startImeWatchdog() {
-        if (imeWatchdogJob?.isActive == true) return
+        imeWatchdogJob?.cancel()
         imeWatchdogJob = serviceScope.launch(Dispatchers.Main) {
-            while (isEnabled && isTouchpadClaimed) {
-                delay(200L)
-                if (isEnabled && isTouchpadClaimed && readNativeAguiInputStatus() != "1") {
+            for (delayMs in longArrayOf(150L, 250L, 400L)) {
+                delay(delayMs)
+                if (!isEnabled || !isTouchpadClaimed) break
+                if (readNativeAguiInputStatus() != "1") {
                     requestPropSync()
                 }
             }

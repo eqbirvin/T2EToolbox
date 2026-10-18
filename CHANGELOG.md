@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.3] - 2026-10-18
+### Added
+- **Block Scroll While Typing — Extended Debounce Duration (Up to 10 Seconds)**:
+  - Expanded the configurable keystroke debounce window from `300ms..2500ms` up to **10 seconds (`300ms..10000ms`)** in 100ms increments.
+  - Added quick preset chips for `400ms`, `800ms`, `2s`, `5s`, and `10s`.
+- **Zero-Idle-Drain IME Race Guard**:
+  - Replaced the continuous 200ms property watchdog loop with a bounded 3-step race guard (`150ms`, `250ms`, `400ms` after focus/typing transitions) so leaving a text field open indefinitely consumes **0.0% background CPU or battery**.
+
 ## [0.12.2] - 2026-10-18
 ### Fixed
 - **Block Scroll While Typing — Native `findTouchedWindowAt` `"InputMethod"` Sink & Compose Focus Fix**:

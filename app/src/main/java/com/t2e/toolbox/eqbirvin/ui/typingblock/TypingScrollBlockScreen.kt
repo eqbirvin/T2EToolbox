@@ -228,36 +228,41 @@ fun TypingScrollBlockScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Debounce Duration", style = MaterialTheme.typography.titleMedium)
+                            val formattedDuration = if (uiState.debounceMs >= 1000) {
+                                String.format(java.util.Locale.US, "%.1fs (%d ms)", uiState.debounceMs / 1000f, uiState.debounceMs)
+                            } else {
+                                "${uiState.debounceMs} ms"
+                            }
                             Text(
-                                "${uiState.debounceMs} ms",
+                                formattedDuration,
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
 
                         Text(
-                            "Delay after the last keystroke before trackpad scrolling automatically resumes.",
+                            "Delay after the last keystroke before trackpad scrolling automatically resumes (up to 10 seconds).",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Slider(
                             value = uiState.debounceMs.toFloat(),
-                            onValueChange = { actions.onSetDebounceMs(it.toInt()) },
-                            valueRange = 300f..2500f,
-                            steps = 21
+                            onValueChange = { actions.onSetDebounceMs(((it / 100f).toInt() * 100).coerceIn(300, 10000)) },
+                            valueRange = 300f..10000f
                         )
 
                         Text("Quick Presets:", style = MaterialTheme.typography.labelMedium)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             listOf(
-                                400 to "400ms (Fast)",
-                                800 to "800ms (Default)",
-                                1200 to "1200ms",
-                                1600 to "1600ms"
+                                400 to "400ms",
+                                800 to "800ms",
+                                2000 to "2s",
+                                5000 to "5s",
+                                10000 to "10s"
                             ).forEach { (ms, label) ->
                                 val isSelected = uiState.debounceMs == ms
                                 FilterChip(
