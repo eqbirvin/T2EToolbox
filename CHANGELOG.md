@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1] - 2026-10-18
+### Fixed
+- **Block Scroll While Typing on Unihertz Titan 2 Elite (`libinputflinger.so` & PhysiBoard Fix)**:
+  - Fixed an issue where Unihertz's native C++ `InputDispatcher` (`libinputflinger.so`) bypassed Android's `AccessibilityInputFilter` (`SOURCE_TOUCHPAD`) whenever Scroll Assistant (`persist.sys.scroll_assistant = 1`) was enabled.
+  - Synchronizes Unihertz's native volatile RAM input flag (`debug.sf.agui_input_status`) via Shizuku on a serialized background IO dispatcher (`1` = suppress Scroll Assistant in `InputDispatcher::notifyMotion`, `0` = allow Scroll Assistant), with zero NAND flash storage wear (`u:object_r:debug_prop:s0` resides strictly in volatile `tmpfs` `/dev/__properties__`).
+  - Added an IME race guard (120ms/300ms shared-memory `SystemProperties` check) so zero-height physical keyboard IMEs like **PhysiBoard** (`mImeWindowVis = 0`) cannot reset `debug.sf.agui_input_status` back to `0` via `InputMethodManagerService.setImeWindowStatusLocked` after a text field gains focus.
+  - Added `TYPE_VIEW_TEXT_CHANGED` accessibility event monitoring alongside `onKeyEvent` so keystroke debounce and text-field detection work reliably even when a higher-priority physical keyboard AccessibilityService (such as PhysiBoard) consumes raw `KeyEvent`s upstream.
+
 ## [0.12.0] - 2026-10-18
 ### Added
 - **Dual-Methodology Typing Scroll Blocking for Unihertz Titan 2 Elite**:

@@ -390,7 +390,7 @@ fun TypingScrollBlockScreen(
                             style = MaterialTheme.typography.titleSmall
                         )
                         Text(
-                            "Filtering operates dynamically in-memory via the Android Accessibility motion event stream without writing to flash storage. Normal touch events on the front glass screen remain completely unaffected at all times.",
+                            "Synchronizes Unihertz's volatile RAM input flag (debug.sf.agui_input_status via Shizuku) with native InputDispatcher and Android Accessibility input filtering—zero flash storage wear. Compatible with third-party physical keyboard IMEs such as PhysiBoard.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

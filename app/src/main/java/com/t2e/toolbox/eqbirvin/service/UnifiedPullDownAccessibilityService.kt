@@ -215,11 +215,14 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                 val className = event.className?.toString() ?: ""
                 handlePerAppDpiWindowState(pkg, className)
                 handleCtsWindowState(pkg, className)
-                handleTypingBlockWindowState(pkg)
+                typingScrollBlockMgr?.handleWindowState(perAppDpiRepo.isHomeOrRecentsPackage(pkg))
             }
             AccessibilityEvent.TYPE_VIEW_FOCUSED,
             AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
-                handleTypingBlockFocusEvent(event)
+                typingScrollBlockMgr?.handleFocusEvent(event)
+            }
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
+                typingScrollBlockMgr?.onTextChanged()
             }
         }
     }
@@ -239,47 +242,6 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         val isHomeOrRecents = perAppDpiRepo.isHomeOrRecentsPackage(pkg)
         Log.d(TAG, "WindowState: pkg=$pkg, class=$className, isHome=$isHomeOrRecents")
         perAppDpiRepo.onPackageForeground(pkg, isHomeOrRecents)
-    }
-
-    @Suppress("DEPRECATION")
-    private fun handleTypingBlockWindowState(pkg: String) {
-        val mgr = typingScrollBlockMgr ?: return
-        if (!mgr.isEnabled || !mgr.isBlockOnTextFieldFocus) return
-
-        if (perAppDpiRepo.isHomeOrRecentsPackage(pkg)) {
-            mgr.onTextFieldFocusChanged(false)
-            return
-        }
-
-        val root = try { rootInActiveWindow } catch (e: Exception) { null }
-        val focusedNode = try { root?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) } catch (e: Exception) { null }
-        val isEditable = focusedNode?.isEditable == true ||
-            (focusedNode?.className?.contains("EditText", ignoreCase = true) == true)
-        try {
-            focusedNode?.recycle()
-            root?.recycle()
-        } catch (ignored: Exception) {}
-
-        mgr.onTextFieldFocusChanged(isEditable)
-    }
-
-    @Suppress("DEPRECATION")
-    private fun handleTypingBlockFocusEvent(event: AccessibilityEvent) {
-        val mgr = typingScrollBlockMgr ?: return
-        if (!mgr.isEnabled || !mgr.isBlockOnTextFieldFocus) return
-
-        val node = try { event.source } catch (e: Exception) { null }
-        val isEditable = try {
-            if (node != null) {
-                node.isEditable || (node.className?.contains("EditText", ignoreCase = true) == true)
-            } else {
-                val className = event.className?.toString() ?: ""
-                className.contains("EditText", ignoreCase = true)
-            }
-        } finally {
-            try { node?.recycle() } catch (ignored: Exception) {}
-        }
-        mgr.onTextFieldFocusChanged(isEditable)
     }
 
     override fun onInterrupt() {
