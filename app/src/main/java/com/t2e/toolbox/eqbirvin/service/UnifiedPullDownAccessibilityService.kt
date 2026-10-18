@@ -19,6 +19,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import com.t2e.toolbox.eqbirvin.T2EApplication
 import com.t2e.toolbox.eqbirvin.data.DisplayFixRepository
 import com.t2e.toolbox.eqbirvin.data.PullDownMethod
@@ -177,11 +178,13 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         connectionScope.launch {
             kotlinx.coroutines.flow.combine(
                 settingsRepo.isBlockScrollWhileTypingEnabled,
+                settingsRepo.isBlockOnKeystrokeEnabled,
+                settingsRepo.isBlockOnTextFieldFocusEnabled,
                 settingsRepo.scrollBlockDebounceMs
-            ) { enabled, debounce ->
-                Pair(enabled, debounce)
-            }.collect { (enabled, debounce) ->
-                typingScrollBlockMgr?.updateConfig(enabled, debounce)
+            ) { master, keystroke, textField, debounce ->
+                TypingBlockConfig(master, keystroke, textField, debounce)
+            }.collect { cfg ->
+                typingScrollBlockMgr?.updateConfig(cfg.master, cfg.keystroke, cfg.textField, cfg.debounce)
             }
         }
 
@@ -200,17 +203,24 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val pkg = event.packageName?.toString() ?: ""
-            if (pkg.isNotEmpty() && pkg != "com.android.systemui") {
-                serviceScope.launch(swipeDispatcher) {
-                    stateMachine.reset()
+        when (event.eventType) {
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                val pkg = event.packageName?.toString() ?: ""
+                if (pkg.isNotEmpty() && pkg != "com.android.systemui") {
+                    serviceScope.launch(swipeDispatcher) {
+                        stateMachine.reset()
+                    }
                 }
-            }
 
-            val className = event.className?.toString() ?: ""
-            handlePerAppDpiWindowState(pkg, className)
-            handleCtsWindowState(pkg, className)
+                val className = event.className?.toString() ?: ""
+                handlePerAppDpiWindowState(pkg, className)
+                handleCtsWindowState(pkg, className)
+                handleTypingBlockWindowState(pkg)
+            }
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
+                handleTypingBlockFocusEvent(event)
+            }
         }
     }
 
@@ -229,6 +239,47 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         val isHomeOrRecents = perAppDpiRepo.isHomeOrRecentsPackage(pkg)
         Log.d(TAG, "WindowState: pkg=$pkg, class=$className, isHome=$isHomeOrRecents")
         perAppDpiRepo.onPackageForeground(pkg, isHomeOrRecents)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun handleTypingBlockWindowState(pkg: String) {
+        val mgr = typingScrollBlockMgr ?: return
+        if (!mgr.isEnabled || !mgr.isBlockOnTextFieldFocus) return
+
+        if (perAppDpiRepo.isHomeOrRecentsPackage(pkg)) {
+            mgr.onTextFieldFocusChanged(false)
+            return
+        }
+
+        val root = try { rootInActiveWindow } catch (e: Exception) { null }
+        val focusedNode = try { root?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) } catch (e: Exception) { null }
+        val isEditable = focusedNode?.isEditable == true ||
+            (focusedNode?.className?.contains("EditText", ignoreCase = true) == true)
+        try {
+            focusedNode?.recycle()
+            root?.recycle()
+        } catch (ignored: Exception) {}
+
+        mgr.onTextFieldFocusChanged(isEditable)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun handleTypingBlockFocusEvent(event: AccessibilityEvent) {
+        val mgr = typingScrollBlockMgr ?: return
+        if (!mgr.isEnabled || !mgr.isBlockOnTextFieldFocus) return
+
+        val node = try { event.source } catch (e: Exception) { null }
+        val isEditable = try {
+            if (node != null) {
+                node.isEditable || (node.className?.contains("EditText", ignoreCase = true) == true)
+            } else {
+                val className = event.className?.toString() ?: ""
+                className.contains("EditText", ignoreCase = true)
+            }
+        } finally {
+            try { node?.recycle() } catch (ignored: Exception) {}
+        }
+        mgr.onTextFieldFocusChanged(isEditable)
     }
 
     override fun onInterrupt() {
@@ -425,3 +476,11 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         serviceScope.cancel()
     }
 }
+
+private data class TypingBlockConfig(
+    val master: Boolean,
+    val keystroke: Boolean,
+    val textField: Boolean,
+    val debounce: Int
+)
+

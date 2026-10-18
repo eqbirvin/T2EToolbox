@@ -17,17 +17,37 @@ class TypingScrollBlockViewModel(
     private val displayRepo: DisplayFixRepository
 ) : ViewModel() {
 
-    val uiState: StateFlow<TypingScrollBlockUiState> = combine(
+    private val settingsFlow = combine(
         settingsRepo.isBlockScrollWhileTypingEnabled,
-        settingsRepo.scrollBlockDebounceMs,
+        settingsRepo.isBlockOnKeystrokeEnabled,
+        settingsRepo.isBlockOnTextFieldFocusEnabled,
+        settingsRepo.scrollBlockDebounceMs
+    ) { enabled, onKeystroke, onTextField, debounce ->
+        SettingsTuple(enabled, onKeystroke, onTextField, debounce)
+    }
+
+    private val runtimeFlow = combine(
         typingBlockRepo.isServiceConnected,
-        typingBlockRepo.isTypingActive
-    ) { enabled, debounce, connected, typingActive ->
+        typingBlockRepo.isTypingActive,
+        typingBlockRepo.isTextFieldFocused,
+        typingBlockRepo.isScrollSuppressed
+    ) { connected, typingActive, textFieldFocused, suppressed ->
+        RuntimeTuple(connected, typingActive, textFieldFocused, suppressed)
+    }
+
+    val uiState: StateFlow<TypingScrollBlockUiState> = combine(
+        settingsFlow,
+        runtimeFlow
+    ) { settings, runtime ->
         TypingScrollBlockUiState(
-            isEnabled = enabled,
-            debounceMs = debounce,
-            isServiceConnected = connected,
-            isTypingActive = typingActive
+            isEnabled = settings.enabled,
+            isBlockOnKeystroke = settings.onKeystroke,
+            isBlockOnTextFieldFocus = settings.onTextField,
+            debounceMs = settings.debounce,
+            isServiceConnected = runtime.connected,
+            isTypingActive = runtime.typingActive,
+            isTextFieldFocused = runtime.textFieldFocused,
+            isScrollSuppressed = runtime.suppressed
         )
     }.stateIn(
         scope = viewModelScope,
@@ -41,9 +61,35 @@ class TypingScrollBlockViewModel(
         }
     }
 
+    fun toggleBlockOnKeystroke(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepo.setBlockOnKeystrokeEnabled(enabled)
+        }
+    }
+
+    fun toggleBlockOnTextFieldFocus(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepo.setBlockOnTextFieldFocusEnabled(enabled)
+        }
+    }
+
     fun setDebounceMs(ms: Int) {
         viewModelScope.launch {
             settingsRepo.setScrollBlockDebounceMs(ms)
         }
     }
+
+    private data class SettingsTuple(
+        val enabled: Boolean,
+        val onKeystroke: Boolean,
+        val onTextField: Boolean,
+        val debounce: Int
+    )
+
+    private data class RuntimeTuple(
+        val connected: Boolean,
+        val typingActive: Boolean,
+        val textFieldFocused: Boolean,
+        val suppressed: Boolean
+    )
 }

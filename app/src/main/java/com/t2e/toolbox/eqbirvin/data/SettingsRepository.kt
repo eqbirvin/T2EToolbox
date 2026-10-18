@@ -245,9 +245,15 @@ class SettingsRepository(context: Context) {
     private val _lastCtsCleanedCount = MutableStateFlow(prefs.getInt("last_cts_cleaned_count", 0))
     val lastCtsCleanedCount: StateFlow<Int> = _lastCtsCleanedCount.asStateFlow()
 
-    // Block Scroll While Typing
+    // Block Scroll While Typing / Text Field
     private val _isBlockScrollWhileTypingEnabled = MutableStateFlow(prefs.getBoolean("block_scroll_while_typing_enabled", false))
     val isBlockScrollWhileTypingEnabled: StateFlow<Boolean> = _isBlockScrollWhileTypingEnabled.asStateFlow()
+
+    private val _isBlockOnKeystrokeEnabled = MutableStateFlow(prefs.getBoolean("block_scroll_on_keystroke_enabled", true))
+    val isBlockOnKeystrokeEnabled: StateFlow<Boolean> = _isBlockOnKeystrokeEnabled.asStateFlow()
+
+    private val _isBlockOnTextFieldFocusEnabled = MutableStateFlow(prefs.getBoolean("block_scroll_on_text_field_focus_enabled", true))
+    val isBlockOnTextFieldFocusEnabled: StateFlow<Boolean> = _isBlockOnTextFieldFocusEnabled.asStateFlow()
 
     private val _scrollBlockDebounceMs = MutableStateFlow(prefs.getInt("scroll_block_debounce_ms", 800))
     val scrollBlockDebounceMs: StateFlow<Int> = _scrollBlockDebounceMs.asStateFlow()
@@ -414,6 +420,16 @@ class SettingsRepository(context: Context) {
     suspend fun setBlockScrollWhileTypingEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
         prefs.edit().putBoolean("block_scroll_while_typing_enabled", enabled).apply()
         _isBlockScrollWhileTypingEnabled.value = enabled
+    }
+
+    suspend fun setBlockOnKeystrokeEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("block_scroll_on_keystroke_enabled", enabled).apply()
+        _isBlockOnKeystrokeEnabled.value = enabled
+    }
+
+    suspend fun setBlockOnTextFieldFocusEnabled(enabled: Boolean) = withContext(Dispatchers.IO) {
+        prefs.edit().putBoolean("block_scroll_on_text_field_focus_enabled", enabled).apply()
+        _isBlockOnTextFieldFocusEnabled.value = enabled
     }
 
     suspend fun setScrollBlockDebounceMs(ms: Int) = withContext(Dispatchers.IO) {

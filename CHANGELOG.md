@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.0] - 2026-10-18
+### Added
+- **Dual-Methodology Typing Scroll Blocking for Unihertz Titan 2 Elite**:
+  - Added continuous text field focus suppression alongside keystroke debounce suppression, allowing users to choose either or both methodologies:
+    - **Method 1: While Actively Typing (Debounce)**: Suppresses capacitive keyboard trackpad scroll upon physical keystrokes, automatically releasing after a configurable rolling delay (300ms–2500ms).
+    - **Method 2: While Text Field Focused (Continuous)**: Dynamically suppresses capacitive keyboard trackpad scrolling whenever an editable text field (`EditText`, Compose `BasicTextField`, or web inputs) is focused on screen.
+  - **In-Memory Input Stream Control**:
+    - Both methodologies operate dynamically via `motionEventSources = SOURCE_TOUCHPAD` in Android's Accessibility framework.
+    - Zero flash wear (no writing to NAND `/data/property` via `setprop`), sub-millisecond latency, and zero root or Shizuku requirement.
+    - Display glass touchscreen touches remain 100% unaffected.
+  - **Enhanced Interactive Diagnostics UI**:
+    - Dual toggle switches for both blocking methodologies.
+    - Real-time status chips indicating focus state ("Focus: Field Active" vs "Focus: None") and debounce state ("Keystroke: Typing" vs "Keystroke: Idle").
+    - Composite status badge clearly showing whether keyboard scrolling is currently suppressed or allowed.
+
 ## [0.10.0] - 2026-10-16
 ### Added
 - Added "Block Scroll While Typing" feature for Unihertz Titan 2 Elite:

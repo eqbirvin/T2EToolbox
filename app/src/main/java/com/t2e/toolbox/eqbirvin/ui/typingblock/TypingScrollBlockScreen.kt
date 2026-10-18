@@ -74,7 +74,7 @@ fun TypingScrollBlockScreen(
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
-                                "Hardware key filtering is connected and ready.",
+                                "In-memory input filter is connected and monitoring events.",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -106,7 +106,7 @@ fun TypingScrollBlockScreen(
                                     style = MaterialTheme.typography.titleSmall
                                 )
                                 Text(
-                                    "Enable T2E Toolbox in Accessibility Settings to intercept keyboard keypresses.",
+                                    "Enable T2E Toolbox in Accessibility Settings to intercept keyboard events and focus.",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -140,7 +140,7 @@ fun TypingScrollBlockScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Temporarily suppress capacitive keyboard scrolling during typing to eliminate accidental page jumps.",
+                            "Suppress capacitive keyboard scrolling during typing to eliminate accidental page jumps.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -153,8 +153,70 @@ fun TypingScrollBlockScreen(
                 }
             }
 
-            // Debounce Settings
+            // Blocking Methodologies
             AnimatedVisibility(visible = uiState.isEnabled) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("Suppression Methods", style = MaterialTheme.typography.titleMedium)
+
+                        // Option 1: Keystroke Debounce
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "While Actively Typing (Debounce)",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    "Suppresses trackpad scroll upon any physical keystroke, releasing after a pause.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Switch(
+                                checked = uiState.isBlockOnKeystroke,
+                                onCheckedChange = actions.onToggleBlockOnKeystroke
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        // Option 2: Text Field Focus
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "While Text Field Focused (Continuous)",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    "Suppresses trackpad scroll continuously whenever an editable text field is active.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Switch(
+                                checked = uiState.isBlockOnTextFieldFocus,
+                                onCheckedChange = actions.onToggleBlockOnTextFieldFocus
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Debounce Settings (shown when keystroke method is active)
+            AnimatedVisibility(visible = uiState.isEnabled && uiState.isBlockOnKeystroke) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -209,15 +271,15 @@ fun TypingScrollBlockScreen(
                 }
             }
 
-            // Interactive Live Typing Test Area
+            // Interactive Live Typing & Focus Test Area
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Interactive Typing Test", style = MaterialTheme.typography.titleMedium)
+                    Text("Interactive Focus & Typing Test", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Type below using the physical keyboard. Watch the status indicator switch in real-time when typing begins and pauses.",
+                        "Click the field below to test focus detection, then type with the physical keyboard to test keystroke detection.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -226,7 +288,7 @@ fun TypingScrollBlockScreen(
                     val statusColor by animateColorAsState(
                         targetValue = when {
                             !uiState.isEnabled -> MaterialTheme.colorScheme.surfaceVariant
-                            uiState.isTypingActive -> MaterialTheme.colorScheme.errorContainer
+                            uiState.isScrollSuppressed -> MaterialTheme.colorScheme.errorContainer
                             else -> MaterialTheme.colorScheme.primaryContainer
                         },
                         label = "badgeColor"
@@ -234,13 +296,21 @@ fun TypingScrollBlockScreen(
 
                     val statusTextColor = when {
                         !uiState.isEnabled -> MaterialTheme.colorScheme.onSurfaceVariant
-                        uiState.isTypingActive -> MaterialTheme.colorScheme.onErrorContainer
+                        uiState.isScrollSuppressed -> MaterialTheme.colorScheme.onErrorContainer
                         else -> MaterialTheme.colorScheme.onPrimaryContainer
                     }
 
                     val statusText = when {
                         !uiState.isEnabled -> "Feature Disabled (Scroll Always Active)"
-                        uiState.isTypingActive -> "Typing Detected — Trackpad Scroll Blocked!"
+                        uiState.isScrollSuppressed -> when {
+                            uiState.isTypingActive && uiState.isTextFieldFocused ->
+                                "Scroll Blocked (Typing & Text Field Focused)"
+                            uiState.isTextFieldFocused ->
+                                "Scroll Blocked (Text Field Focused)"
+                            uiState.isTypingActive ->
+                                "Scroll Blocked (Keystroke Debounce Active)"
+                            else -> "Scroll Blocked"
+                        }
                         else -> "Idle — Trackpad Scroll Allowed"
                     }
 
@@ -258,11 +328,30 @@ fun TypingScrollBlockScreen(
                         )
                     }
 
+                    // Status Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(if (uiState.isTextFieldFocused) "Focus: Field Active" else "Focus: None")
+                            }
+                        )
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(if (uiState.isTypingActive) "Keystroke: Typing" else "Keystroke: Idle")
+                            }
+                        )
+                    }
+
                     OutlinedTextField(
                         value = testTypingText,
                         onValueChange = { testTypingText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Type here with physical keyboard...") },
+                        placeholder = { Text("Tap here to focus text field...") },
                         maxLines = 3
                     )
 
@@ -301,7 +390,7 @@ fun TypingScrollBlockScreen(
                             style = MaterialTheme.typography.titleSmall
                         )
                         Text(
-                            "When physical keys are pressed, T2E Toolbox intercepts the capacitive touchpad stream at the Android InputDispatcher level, preventing accidental swipes from bouncing your active app. Normal touchscreen touches on the display glass remain completely unaffected.",
+                            "Filtering operates dynamically in-memory via the Android Accessibility motion event stream without writing to flash storage. Normal touch events on the front glass screen remain completely unaffected at all times.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

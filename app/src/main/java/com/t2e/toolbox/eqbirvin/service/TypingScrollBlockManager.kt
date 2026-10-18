@@ -21,24 +21,40 @@ class TypingScrollBlockManager(
 ) {
     var isEnabled: Boolean = false
         private set
+    var isBlockOnKeystroke: Boolean = true
+        private set
+    var isBlockOnTextFieldFocus: Boolean = true
+        private set
     var debounceMs: Int = 800
         private set
 
+    private var isDebounceClaimActive: Boolean = false
+    private var isTextFieldFocusClaimActive: Boolean = false
     private var isTouchpadClaimed: Boolean = false
     private var debounceJob: Job? = null
 
-    fun updateConfig(enabled: Boolean, debounce: Int) {
+    fun updateConfig(
+        masterEnabled: Boolean,
+        blockOnKeystroke: Boolean,
+        blockOnTextFieldFocus: Boolean,
+        debounce: Int
+    ) {
         val wasEnabled = isEnabled
-        isEnabled = enabled
+        isEnabled = masterEnabled
+        isBlockOnKeystroke = blockOnKeystroke
+        isBlockOnTextFieldFocus = blockOnTextFieldFocus
         debounceMs = debounce.coerceIn(300, 2500)
-        Log.d(TAG, "updateConfig: enabled=$enabled, debounceMs=$debounceMs")
-        if (wasEnabled && !enabled) {
+        Log.d(TAG, "updateConfig: enabled=$masterEnabled, keystroke=$blockOnKeystroke, textField=$blockOnTextFieldFocus, debounceMs=$debounceMs")
+
+        if (wasEnabled && !masterEnabled) {
             cleanup()
+        } else {
+            reevaluateClaim()
         }
     }
 
     fun onKeyEvent(event: KeyEvent): Boolean {
-        if (!isEnabled) return false
+        if (!isEnabled || !isBlockOnKeystroke) return false
 
         if (isTypingKey(event) && event.action == KeyEvent.ACTION_DOWN) {
             onTypingKeyDown()
@@ -48,28 +64,46 @@ class TypingScrollBlockManager(
         return false
     }
 
+    fun onTextFieldFocusChanged(focused: Boolean) {
+        if (!isEnabled || isTextFieldFocusClaimActive == focused) return
+        isTextFieldFocusClaimActive = focused
+        repository.setTextFieldFocused(focused)
+        reevaluateClaim()
+    }
+
     fun onMotionEvent(event: MotionEvent): Boolean {
         if (!isEnabled || !isTouchpadClaimed) return false
 
         if (event.isFromSource(InputDevice.SOURCE_TOUCHPAD)) {
-            // Accidental trackpad swipe during active typing debounce - consume and drop
+            // Accidental trackpad swipe during active typing or while text field is focused - consume and drop
             return true
         }
         return false
     }
 
     private fun onTypingKeyDown() {
-        if (!isTouchpadClaimed) {
-            claimTouchpad(true)
-            repository.setTypingActive(true)
-        }
+        isDebounceClaimActive = true
+        repository.setTypingActive(true)
+        reevaluateClaim()
 
         debounceJob?.cancel()
         debounceJob = serviceScope.launch(Dispatchers.Main) {
             delay(debounceMs.toLong())
-            claimTouchpad(false)
+            isDebounceClaimActive = false
             repository.setTypingActive(false)
+            reevaluateClaim()
         }
+    }
+
+    private fun reevaluateClaim() {
+        val shouldClaim = isEnabled && (
+            (isBlockOnKeystroke && isDebounceClaimActive) ||
+            (isBlockOnTextFieldFocus && isTextFieldFocusClaimActive)
+        )
+        if (shouldClaim != isTouchpadClaimed) {
+            claimTouchpad(shouldClaim)
+        }
+        repository.setScrollSuppressed(shouldClaim)
     }
 
     private fun claimTouchpad(claim: Boolean) {
@@ -134,9 +168,13 @@ class TypingScrollBlockManager(
     fun cleanup() {
         debounceJob?.cancel()
         debounceJob = null
+        isDebounceClaimActive = false
+        isTextFieldFocusClaimActive = false
         if (isTouchpadClaimed) {
             claimTouchpad(false)
         }
         repository.setTypingActive(false)
+        repository.setTextFieldFocused(false)
+        repository.setScrollSuppressed(false)
     }
 }

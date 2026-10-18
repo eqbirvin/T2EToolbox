@@ -260,6 +260,8 @@ class MainActivity : ComponentActivity() {
                             val actions = remember(viewModel, navController) {
                                 com.t2e.toolbox.eqbirvin.ui.typingblock.TypingScrollBlockActions(
                                     onToggleEnabled = { viewModel.toggleEnabled(it) },
+                                    onToggleBlockOnKeystroke = { viewModel.toggleBlockOnKeystroke(it) },
+                                    onToggleBlockOnTextFieldFocus = { viewModel.toggleBlockOnTextFieldFocus(it) },
                                     onSetDebounceMs = { viewModel.setDebounceMs(it) },
                                     onOpenAccessibilitySettings = {
                                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
