@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.12.4] - 2026-10-19
+### Fixed
+- **Per-App DPI — App Refresh Loop on Volume Keys, Notification Shade, Permission Prompts & Overlays**:
+  - **Root Cause**: `com.android.systemui` was treated like Home/Recents, and every other window-state change was treated as a new foreground app. Any overlay drawn on top of a scaled app (volume panel, notification shade / Quick Settings, power menu, screenshot UI, permission prompts, Circle to Search, Assistant / Gemini overlay) therefore triggered `wm density reset`. The scaled app (e.g. Instagram at Tablet 600 dp) relaunched, reported itself foreground again, and had its DPI re-applied, causing a double refresh. Because SystemUI also rebuilds the volume dialog on density changes, this repeated on **every** volume key press.
+  - **Fix**: Added `TransientOverlayClassifier`, and `PerAppDpiRepository.onPackageForeground` now ignores transient overlays entirely (like IMEs), keeping the current app's density while they are shown:
+    - **SystemUI** windows (volume panel, shade, Quick Settings, power menu, screenshot UI, etc.).
+    - **Permission prompts** (`permissioncontroller`) and **install / uninstall dialogs** (`packageinstaller`).
+    - **Non-application windows**: the accessibility service now resolves the event's `AccessibilityWindowInfo` type, and anything that isn't `TYPE_APPLICATION` (voice-interaction sessions used by **Circle to Search** and the **Assistant / Gemini overlay**, floating chat bubbles, system dialogs) is ignored.
+    - **Google app overlay fallback**: when window metadata isn't available yet, Google app windows whose class indicates Lens / Assistant / Gemini are ignored.
+  - Lockscreen safety is unchanged and still handled by the `ACTION_SCREEN_OFF` restore and keyguard guard.
+
 ## [0.12.3] - 2026-10-18
 ### Added
 - **Block Scroll While Typing — Extended Debounce Duration (Up to 10 Seconds)**:

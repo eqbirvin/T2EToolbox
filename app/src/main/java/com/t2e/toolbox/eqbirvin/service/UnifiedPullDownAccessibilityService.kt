@@ -20,6 +20,7 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.t2e.toolbox.eqbirvin.T2EApplication
 import com.t2e.toolbox.eqbirvin.data.DisplayFixRepository
 import com.t2e.toolbox.eqbirvin.data.PullDownMethod
@@ -213,7 +214,7 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
                 }
 
                 val className = event.className?.toString() ?: ""
-                handlePerAppDpiWindowState(pkg, className)
+                handlePerAppDpiWindowState(event, pkg, className)
                 handleCtsWindowState(pkg, className)
                 typingScrollBlockMgr?.handleWindowState(perAppDpiRepo.isHomeOrRecentsPackage(pkg))
             }
@@ -234,14 +235,35 @@ class UnifiedPullDownAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun handlePerAppDpiWindowState(pkg: String, className: String) {
+    private fun handlePerAppDpiWindowState(event: AccessibilityEvent, pkg: String, className: String) {
         if (pkg.isEmpty()) return
+        if (!settingsRepo.isPerAppDpiEnabled.value) return
         if (className.startsWith("android.widget.") || className.startsWith("android.view.")) {
             return
         }
         val isHomeOrRecents = perAppDpiRepo.isHomeOrRecentsPackage(pkg)
-        Log.d(TAG, "WindowState: pkg=$pkg, class=$className, isHome=$isHomeOrRecents")
-        perAppDpiRepo.onPackageForeground(pkg, isHomeOrRecents)
+        val isApplicationWindow = resolveIsApplicationWindow(event.windowId)
+        Log.d(TAG, "WindowState: pkg=$pkg, class=$className, isHome=$isHomeOrRecents, appWindow=$isApplicationWindow")
+        perAppDpiRepo.onPackageForeground(pkg, isHomeOrRecents, className, isApplicationWindow)
+    }
+
+    /**
+     * Returns whether the given window is a regular app window (TYPE_APPLICATION), `false` for
+     * system / voice-interaction / overlay windows, or `null` if the window isn't known yet.
+     */
+    private fun resolveIsApplicationWindow(windowId: Int): Boolean? {
+        if (windowId == -1) return null
+        val windowList = try {
+            windows
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException retrieving windows", e)
+            return null
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "IllegalStateException retrieving windows", e)
+            return null
+        }
+        val info = windowList.firstOrNull { it.id == windowId } ?: return null
+        return info.type == AccessibilityWindowInfo.TYPE_APPLICATION
     }
 
     override fun onInterrupt() {

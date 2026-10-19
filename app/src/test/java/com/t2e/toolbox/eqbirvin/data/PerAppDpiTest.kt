@@ -3,6 +3,7 @@ package com.t2e.toolbox.eqbirvin.data
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -114,5 +115,52 @@ class PerAppDpiTest {
         val mapDeserialized = json.decodeFromString<Map<String, PerAppDpiRule>>(mapSerialized)
         assertEquals(1, mapDeserialized.size)
         assertEquals(rule, mapDeserialized["com.instagram.android"])
+    }
+
+    @Test
+    fun testSystemUiAndPromptPackagesAreOverlays() {
+        val overlayPackages = listOf(
+            "com.android.systemui",
+            "com.google.android.permissioncontroller",
+            "com.android.permissioncontroller",
+            "com.google.android.packageinstaller",
+            "com.android.packageinstaller"
+        )
+        for (pkg in overlayPackages) {
+            // Even when reported as an application window (e.g. GrantPermissionsActivity)
+            assertTrue(pkg, TransientOverlayClassifier.isTransientOverlay(pkg, "SomeClass", true))
+            assertTrue(pkg, TransientOverlayClassifier.isTransientOverlay(pkg, "SomeClass", null))
+        }
+    }
+
+    @Test
+    fun testNonApplicationWindowsAreOverlays() {
+        // Voice interaction sessions (Circle to Search, Gemini overlay), bubbles, etc.
+        assertTrue(
+            TransientOverlayClassifier.isTransientOverlay(
+                "com.google.android.googlequicksearchbox", "com.google.SomeSession", false
+            )
+        )
+        assertTrue(
+            TransientOverlayClassifier.isTransientOverlay("com.facebook.orca", "ChatHeadView", false)
+        )
+    }
+
+    @Test
+    fun testGoogleAppOverlayClassFallback() {
+        val gsa = "com.google.android.googlequicksearchbox"
+        assertTrue(TransientOverlayClassifier.isTransientOverlay(gsa, "com.google.android.apps.lens.LensActivity", null))
+        assertTrue(TransientOverlayClassifier.isTransientOverlay(gsa, "com.google.android.apps.gsa.staticplugins.opa.OpaActivity", null))
+        assertTrue(TransientOverlayClassifier.isTransientOverlay(gsa, "com.google.android.apps.gemini.OverlayActivity", null))
+        // Regular Google app search screen is a real foreground app
+        assertFalse(TransientOverlayClassifier.isTransientOverlay(gsa, "com.google.android.googlequicksearchbox.SearchActivity", true))
+    }
+
+    @Test
+    fun testRegularAppsAreNotOverlays() {
+        assertFalse(TransientOverlayClassifier.isTransientOverlay("com.instagram.android", "com.instagram.mainactivity.MainActivity", true))
+        assertFalse(TransientOverlayClassifier.isTransientOverlay("com.instagram.android", "com.instagram.mainactivity.MainActivity", null))
+        // Class markers only apply to the Google app
+        assertFalse(TransientOverlayClassifier.isTransientOverlay("com.example.lensapp", "com.example.lensapp.LensActivity", true))
     }
 }

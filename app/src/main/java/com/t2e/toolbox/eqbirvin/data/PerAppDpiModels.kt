@@ -30,6 +30,50 @@ data class LayoutRangeLegend(
     val desktopDpRange: String = "≥ 720 dp"
 )
 
+/**
+ * Decides whether a window-state change comes from a transient overlay that floats on top of the
+ * real foreground app (volume panel, notification shade, permission prompts, Circle to Search,
+ * Assistant / Gemini overlay, chat bubbles, ...). Such windows must never change the density,
+ * otherwise the scaled app underneath is relaunched (reset -> relaunch -> re-apply loop).
+ */
+object TransientOverlayClassifier {
+    const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+    const val GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox"
+
+    /** Packages whose windows are always shown on top of another app. */
+    val OVERLAY_PACKAGES: Set<String> = setOf(
+        SYSTEM_UI_PACKAGE,
+        // Runtime permission prompts ("Allow Instagram to take pictures?")
+        "com.google.android.permissioncontroller",
+        "com.android.permissioncontroller",
+        // Install / uninstall confirmation dialogs
+        "com.google.android.packageinstaller",
+        "com.android.packageinstaller"
+    )
+
+    /** Class-name markers for Google app overlays (Circle to Search / Lens, Assistant, Gemini). */
+    private val GOOGLE_OVERLAY_CLASS_MARKERS = listOf("lens", "assist", "gemini", ".opa.")
+
+    /**
+     * @param isApplicationWindow `true` if the event's window is a regular app window
+     *   (`AccessibilityWindowInfo.TYPE_APPLICATION`), `false` if it is a system / voice-interaction /
+     *   overlay window, or `null` if the window metadata isn't available yet.
+     */
+    fun isTransientOverlay(packageName: String, className: String, isApplicationWindow: Boolean?): Boolean {
+        if (packageName in OVERLAY_PACKAGES) return true
+        // Non-application windows (voice interaction sessions used by Circle to Search and the
+        // Assistant / Gemini overlay, TYPE_APPLICATION_OVERLAY bubbles, system dialogs) never
+        // represent a new foreground app.
+        if (isApplicationWindow == false) return true
+        // Fallback when window metadata is unavailable: Google app overlays identified by class.
+        if (packageName == GOOGLE_APP_PACKAGE) {
+            val lower = className.lowercase()
+            if (GOOGLE_OVERLAY_CLASS_MARKERS.any { lower.contains(it) }) return true
+        }
+        return false
+    }
+}
+
 object DpiScaleCalculator {
     const val TABLET_BREAKPOINT_DP = 600
     const val DESKTOP_BREAKPOINT_DP = 720

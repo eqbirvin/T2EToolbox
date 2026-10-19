@@ -152,7 +152,7 @@ class PerAppDpiRepository(
     private var lastHomeQueryTime: Long = 0L
 
     fun isHomeOrRecentsPackage(packageName: String): Boolean {
-        if (packageName == "com.android.systemui") return true
+        if (packageName == TransientOverlayClassifier.SYSTEM_UI_PACKAGE) return true
         val now = System.currentTimeMillis()
         if (now - lastHomeQueryTime > 30000L || cachedHomePackages.isEmpty()) {
             val pm = context.packageManager
@@ -188,7 +188,12 @@ class PerAppDpiRepository(
         return cachedImePackages.contains(packageName)
     }
 
-    fun onPackageForeground(packageName: String?, isHomeOrRecents: Boolean) {
+    fun onPackageForeground(
+        packageName: String?,
+        isHomeOrRecents: Boolean,
+        className: String = "",
+        isApplicationWindow: Boolean? = null
+    ) {
         if (!settingsRepo.isPerAppDpiEnabled.value) return
         if (packageName.isNullOrEmpty() || packageName == "android") {
             return
@@ -200,7 +205,17 @@ class PerAppDpiRepository(
             return
         }
 
-        // Immediate reversion to base on entering Home, Recents, or SystemUI
+        // Ignore transient overlays (volume panel, notification shade, power menu, permission
+        // prompts, Circle to Search, Assistant / Gemini overlay, bubbles, etc.). They float on top
+        // of the real foreground app, so changing density for them caused a
+        // reset -> app relaunch -> re-apply loop (e.g. on every volume key press). Lockscreen
+        // safety is handled separately by the ACTION_SCREEN_OFF receiver and the keyguard guard below.
+        if (TransientOverlayClassifier.isTransientOverlay(packageName, className, isApplicationWindow)) {
+            Log.d(TAG, "Ignoring transient overlay: $packageName/$className (appWindow=$isApplicationWindow)")
+            return
+        }
+
+        // Immediate reversion to base on entering Home or Recents
         if (isHomeOrRecents || isHomeOrRecentsPackage(packageName)) {
             _currentForegroundPackage.value = packageName
             applyJob?.cancel()
