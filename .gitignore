@@ -52,3 +52,5 @@ temp_shizuku/
 .agents/
 history.log
 specs/
+CLAUDE.md
+.claude/
