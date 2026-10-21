@@ -6,8 +6,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.t2e.toolbox.eqbirvin.BuildConfig
 
 data class HomeScreenActions(
     val onNavigateToKeyboardBacklight: () -> Unit,
@@ -25,7 +27,18 @@ data class HomeScreenActions(
 fun HomeScreen(actions: HomeScreenActions) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("T2E Toolbox") })
+            TopAppBar(title = {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("T2E Toolbox")
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 3.dp)
+                    )
+                }
+            })
         }
     ) { padding ->
         Column(

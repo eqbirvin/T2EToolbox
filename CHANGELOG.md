@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.12.6] - 2026-10-20
+### Added
+- **App version in header**: The home screen header now shows the installed app version (e.g. `v0.12.6`) next to the "T2E Toolbox" title.
+
 ## [0.12.4] - 2026-10-19
 ### Fixed
 - **Per-App DPI — App Refresh Loop on Volume Keys, Notification Shade, Permission Prompts & Overlays**:
